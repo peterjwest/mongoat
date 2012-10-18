@@ -44,7 +44,7 @@ A straight forward Mongo ODM (ORM) for Symfony2
 		}
 	}
 
-### Sample query:
+### Sample query class:
 
 	// User query class defines query methods, inherits in a similar way to the models
 	class UserQuery extends Query
@@ -55,7 +55,7 @@ A straight forward Mongo ODM (ORM) for Symfony2
 		}
 	}
 
-## Sample query:
+### Sample query:
 
 	// From the service we can get a new query object
 	$query = $container->get("model")->find("User");
