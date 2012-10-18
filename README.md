@@ -24,6 +24,9 @@ A straight forward Mongo ODM (ORM) for Symfony2
 		{
 			self::parent($connection);
 
+			// The class is linked to a query class, defaults to the default Mongoat query class
+			$this->setQueryClass('UserQuery');
+
 			// Each model has a schema object, which tells the model what fields it has
 			// Although we change this in the constructor, we could techincally change it anywhere
 			$schema = $this->getSchema();
