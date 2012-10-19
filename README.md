@@ -61,7 +61,7 @@ A straight forward Mongo ODM (ORM) for Symfony2
 ### Sample query:
 
 	// From the service we can get a new query object
-	$query = $container->get("model")->find("User");
+	$query = $container->get("mongoat")->find("User");
 
 	// The query object lets you chain standard and custom methods
 	$users = $query
@@ -73,3 +73,30 @@ A straight forward Mongo ODM (ORM) for Symfony2
 		// embedded references are included by default
 		->references(array('cat' => array('breed', 'vaccinations'), 'group'))
 		->all();
+
+### Model methods
+
+	// Models have Symfony2 and Rails style getter/setters fields:
+
+	$user->setAge(21);
+	$age = $user->getAge();
+
+	$user->age(21);
+	$age = $user->age();
+
+	// Models also have string and array based getters/setters:
+
+	$user->set('age', 21);
+	$age = $user->get('age');
+
+	$user->set(array('age' => 21, 'registered' => new \DateTime));
+	$details = $user->get(array('age', 'registered'));
+
+
+### Standalone references
+
+	// You can get the references for an array of models after they've been loaded:
+	$users = $container->get("mongoat")->find("User")->all();
+
+	// This loads the references into each user and also returns the queried objects
+	$cats = $container->get("mongoat")->references($users, 'cat');
