@@ -69,9 +69,9 @@ A straight forward Mongo ODM (ORM) for Symfony2
 		// models are converted to ID and dates are converted to mongo dates
 		->where(array('age' => 21, 'registered' => array('$lt' => new DateTime)))
 		->inPast()
-		// References can be included to optimise queries, even nested references work
-		// embedded references are included by default
-		->references(array('cat' => array('breed', 'vaccinations'), 'group'))
+		// Relationships can be pre-populated to optimise queries, even nested relationships work
+		// embedded relationships are included by default, but can be named to make nested relationships populate
+		->populate(array('cat' => array('breed', 'vaccinations'), 'group'))
 		->all();
 
 ### Model methods
@@ -93,10 +93,12 @@ A straight forward Mongo ODM (ORM) for Symfony2
 	$details = $user->get(array('age', 'registered'));
 
 
-### Standalone references
+### Standalone population
 
-	// You can get the references for an array of models after they've been loaded:
+You can get the relationships for an array of models after they've been loaded:
+
+	// This loads the users
 	$users = $container->get("mongoat")->find("User")->all();
 
-	// This loads the references into each user and also returns the queried objects
-	$cats = $container->get("mongoat")->references($users, 'cat');
+	// This loads the relationships into each user and also returns the queried objects
+	$cats = $container->get("mongoat")->populate($users, 'cat');
