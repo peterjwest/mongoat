@@ -4,6 +4,7 @@ namespace WhiteOctober\MongoatBundle\Core;
 
 class Mongoat
 {
+	protected $connection;
 	protected $persisting;
     protected $removing;
     protected $modelNamespace;
