@@ -7,7 +7,7 @@ A straight forward Mongo ODM (ORM) for Symfony2
 
 - Define your schema in code, in the model
 - Consequently, no code generation
-- Include references to optimise queries, even nest references
+- Populate relationships to optimise queries, even nested relationships
 - Generate migration files automatically to migrate code easily
 - Migrate your database forwards or backwards
 
@@ -32,13 +32,13 @@ A straight forward Mongo ODM (ORM) for Symfony2
 			$schema = $this->getSchema();
 
 			// Normal fields declared here, with Symfony validation
-			$schema->addFields(array(
+			$schema->fields(array(
 				'foo' => array('type' => 'string', 'validation' => array()),
 				'bar' => array('type' => 'number', 'validation' => array())
 			));
 
-			// Any kinds of references defined here
-			$schema->addReferences(
+			// Any kinds of relationships defined here
+			$schema->relationships(
 				'cat' => array('type' => 'hasOne', 'class' => "Cat"),
 				'team' => array('type' => 'belongsTo', 'class' => "Team"),
 				'phone_number' => array('type' => 'containsMany', 'class' => "PhoneNumber"),
