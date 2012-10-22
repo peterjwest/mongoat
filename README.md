@@ -11,6 +11,19 @@ A straight forward Mongo ODM (ORM) for Symfony2
 - Generate migration files automatically to migrate code easily
 - Migrate your database forwards or backwards
 
+## TODO
+
+- Build field update/insert generator
+- Finish model getters/setters
+- Hook into Mongo connection
+- Get prototype working
+- Switch to TDD, test existing code
+- Add relationships
+- Add population feature
+- Build array walker to filter query criteria
+- Add support for symfony validation
+- Add logging
+- Add query analyser
 
 ## Planned interface:
 
