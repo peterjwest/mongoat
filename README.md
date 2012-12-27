@@ -32,31 +32,31 @@ A straight forward Mongo ODM (ORM) for Symfony2
 	// Classes extend a Model class in the bundle, which extends a base Model class in Mongoat
 	class User extends Model
 	{
-		// Override the constructor to define the schema, can be used to add to an inherited schema
-		public function __construct($connection)
+		// The class is linked to a query class, defaults to the default Mongoat query class
+		static $queryClass = 'WhiteOctober\MongoatBundle\Core\Query';
+
+		// Override the definition method to define the schema, can be used to add to an inherited schema
+		public function definition($schema)
 		{
-			self::parent($connection);
-
-			// The class is linked to a query class, defaults to the default Mongoat query class
-			$this->setQueryClass('UserQuery');
-
 			// Each model has a schema object, which tells the model what fields it has
-			// Although we change this in the constructor, we could techincally change it anywhere
-			$schema = $this->getSchema();
+			// This method defines the schema on instantiation, however we could define or update it anywhere
+			$schema = self::parent($schema);
 
-			// Normal fields declared here, with Symfony validation
+			// Normal fields declared as below, with support for Symfony validation
 			$schema->fields(array(
-				'foo' => array('type' => 'string', 'validation' => array()),
+				'foo' => array('type' => 'string'),
 				'bar' => array('type' => 'number', 'validation' => array())
 			));
 
-			// Any kinds of relationships defined here
+			// All kinds of relationships defined as below
 			$schema->relationships(
 				'cat' => array('type' => 'hasOne', 'class' => "Cat"),
-				'team' => array('type' => 'belongsTo', 'class' => "Team"),
+				'team' => array('type' => 'belongsTo', 'class' => "Team", 'fieldName' => 'petId'),
 				'phone_number' => array('type' => 'containsMany', 'class' => "PhoneNumber"),
 				'group' => array('type' => 'embeddedIn', 'class' => "UserGroup")
 			));
+
+			return $schema;
 		}
 	}
 
@@ -73,8 +73,11 @@ A straight forward Mongo ODM (ORM) for Symfony2
 
 ### Sample query:
 
-	// From the service we can get a new query object
-	$query = $container->get("mongoat")->find("User");
+	// Mongoat is registered on the container
+	$mongoat = $container->get("mongoat");
+
+	// From the service we can get a new query object, the default query action is find
+	$query = $mongoat->get("User");
 
 	// The query object lets you chain standard and custom methods
 	$users = $query
@@ -86,6 +89,15 @@ A straight forward Mongo ODM (ORM) for Symfony2
 		// embedded relationships are included by default, but can be named to make nested relationships populate
 		->populate(array('cat' => array('breed', 'vaccinations'), 'group'))
 		->all();
+
+### Other query methods:
+
+	// Update and delete queries are run with one() or all() the same as find()
+	$query = $mongoat->get("User")->where(array('lame' => true))->update(array('epic' => false))->one();
+	$query = $mongoat->get("User")->where(array('epic' => false))->delete()->all();
+
+	// Count queries are run immediately
+	$query = $mongoat->get("User")->where(array('epic' => false))->count();
 
 ### Model methods
 
@@ -111,7 +123,7 @@ A straight forward Mongo ODM (ORM) for Symfony2
 You can get the relationships for an array of models after they've been loaded:
 
 	// This loads the users
-	$users = $container->get("mongoat")->find("User")->all();
+	$users = $mongoat->get("User")->all();
 
 	// This loads the relationships into each user and also returns the queried objects
-	$cats = $container->get("mongoat")->populate($users, 'cat');
+	$cats = $mongoat->populate($users, 'cat');
