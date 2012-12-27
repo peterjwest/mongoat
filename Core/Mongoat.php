@@ -4,49 +4,84 @@ namespace WhiteOctober\MongoatBundle\Core;
 
 class Mongoat
 {
-	protected $connection;
-	protected $persisting;
-    protected $removing;
-    protected $modelNamespace;
+	protected $currentConnection = null;
+	protected $connections = array();
+	protected $persisting = array();
+    protected $removing = array();
+    protected $modelNamespace = '';
 
-    // Sets Mongo connection
-	public function __construct($connection)
+    // Model namespace getter/setter
+    public function modelNamespace($modelNamespace = null)
+    {
+    	if (func_num_args() == 0) return $this->modelNamespace;
+		$this->modelNamespace = $modelNamespace;
+		return $this;
+    }
+
+    // Adds a Mongo connection
+	public function addConnection($name, $connection)
 	{
-		$this->connection = $connection;
+		// Sets this to be the current connection if none is set already
+		if ($this->currentConnection === null) {
+			$this->currentConnection = $name;
+		}
+
+		$this->connections[$name] = $connection;
 	}
 
-	// Creates a query for a model
+	// Getter / setter for the current connection
+	public function connection($name = null)
+	{
+		if (func_num_args() == 0) return $this->connections[$this->currentConnection];
+        if (!isset($this->connections[$name])) throw new \Exception('Connection "'.$name.'" not found.');
+
+        $this->currentConnection = $name;
+	}
+
+    // Gets the specified collection for the current connection
+    public function collection($document)
+    {
+        var_dump($this->collectionName(get_class($document)));
+        return $this->connection()->collection($this->collectionName(get_class($document)));
+    }
+
+	// Creates an instance of a model, passing it this Mongoat instance
+	public function create($model)
+	{
+		$class = $this->fullClass($model);
+		$instance = new $class();
+		return $instance->mongoat($this)->defaults();
+	}
+
+	// Creates a find query for a model
 	public function find($model)
 	{
-		return $this->createQuery($this->fullClass($model));
+		$modelClass = $this->fullClass($model);
+		$queryClass = $modelClass::$queryClass;
+		return new $queryClass($this, $modelClass);
 	}
 
-	// Saves one or more documents
-	public function save($documents)
-	{
-		$documents = is_array($documents) ? $documents : array($documents);
-		foreach ($documents as $document) {
-			//...
-		}
-	}
+    // Creates an update query for a model
+    public function update($model, $changes)
+    {
+        return $this->find($model)->type('update')->changes($changes);
+    }
 
-	// CUpdates one or more documents
-	public function update($documents)
-	{
-		$documents = is_array($documents) ? $documents : array($documents);
-		foreach ($documents as $document) {
-			//...
-		}
-	}
+    // Creates a delete query for a model
+    public function delete($model)
+    {
+        return $this->find($model)->type('delete');
+    }
 
-	// Deletes one or more documents
-	public function delete($documents)
-	{
-		$documents = is_array($documents) ? $documents : array($documents);
-		foreach ($documents as $document) {
-			//...
-		}
-	}
+    public function populate($documents, $relationship)
+    {
+        if (count($documents) == 0) return array();
+        $document = $documents[0];
+        $options = $document->schema()->relationships[$relationship];
+
+        $ids = array_map(function($document) { return new \MongoId($document->ownerId()); }, $documents);
+        return $this->find($options['class'])->where('_id', array('$in' => $ids))->all();
+    }
 
 	// Schedules one or more documents to be saved
 	public function persist($documents)
@@ -71,27 +106,41 @@ class Mongoat
 	// Saves all persisted models, deletes all removed models
 	public function flush()
 	{
-        //foreach ($this->persisting as $class => $documents) $this->save($documents);
-        //foreach ($this->removing as $class => $documents) $this->delete($documents);
+        foreach ($this->persisting as $document) $document->save();
+        foreach ($this->removing as $document) $document->delete();
         $this->persisting = array();
         $this->removing = array();
 	}
 
-	// Gets the full class by prepending the default model namespace
-	protected function fullClass($class)
-	{
-		return strpos($class, $this->modelNamespace) == 0 ? $class : $this->modelNamespace.$class;
-	}
+    // Gets a unique ID for each object
+    protected function getObjectId($object)
+    {
+        return spl_object_hash($object);
+    }
 
-	// Groups documents by class
-	protected function groupByClass($documents)
-	{
+	// Getter / setter for the Mongo collection name
+    public function collectionName($class)
+    {
 
-	}
+        if (!isset($class::$collectionNames[$class])) {
+            $class::$collectionNames[$class] = $this->generateCollectionName($class);
+        }
+        return $class::$collectionNames[$class];
+    }
 
-	// Gets a unique ID for each object
-	protected function getObjectId($object)
-	{
-		return spl_object_hash($object);
-	}
+    // Gets the full class by prepending the default model namespace
+    protected function fullClass($class)
+    {
+        return class_exists($class) ? $class : $this->modelNamespace.'\\'.$class;
+    }
+
+    // Generates a collection name based on the model class
+    protected function generateCollectionName($class)
+    {
+        $namespace = $this->modelNamespace();
+        if (strpos($class, $namespace.'\\') == 0) {
+            $class = str_replace($namespace.'\\', '', $class);
+        }
+        return str_replace('\\', '_', $class);
+    }
 }

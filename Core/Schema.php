@@ -4,75 +4,166 @@ namespace WhiteOctober\MongoatBundle\Core;
 
 class Schema
 {
-	static protected $filters = {
-		'set' => array(
-			'string' => function($value) {
-				return (string) $value;
-			},
-			'integer' => function($value) {
-				return (integer) $value;
-			},
-			'float' => function($value) {
-				return (float) $value;
-			},
-			'boolean' => function($value) {
-				return !!$value;
-			}
-			'array' => function($value) {
-				return is_array($value) ? $value : array($value);
-			}
-				'date' => function($value) {
-				return is_string($value) || is_numeric($value) ? new \DateTime($value) : $value;
-			}
-		),
+	protected $filters = array();
+	protected $fields = array('_id' => array('type' => 'id'));
+	public $relationships = array();
 
-		'insert' => array(
-			'date' => function($value) {
-				return $value instanceof \DateTime ? new \MongoDate($value->getTimestamp()) : null;
-			}
-		),
-
-		'hydrate' => array(
-			'date' => function($value) {
-				$date = new \DateTime();
-				$date->setTimestamp($value->sec);
-				return $date;
-			}
-		)
-	};
-
-	protected $fields = array();
-	protected $relationships = array();
-
-	// Adds one or more fields
-	public function fields($fields)
+	public function __construct()
 	{
-		// Merge $fields into $this->fields;
+		$this->filters = array(
+			// These functions filter data set on the model
+			'set' => array(
+				'id' => function($id) {
+					return new \MongoId($id);
+				},
+				'string' => function($value) {
+					return (string) $value;
+				},
+				'integer' => function($value) {
+					return (integer) $value;
+				},
+				'float' => function($value) {
+					return (float) $value;
+				},
+				'boolean' => function($value) {
+					return !!$value;
+				},
+				'array' => function($value) {
+					return is_array($value) ? $value : array($value);
+				},
+				'date' => function($value) {
+					return is_string($value) || is_numeric($value) ? new \DateTime($value) : $value;
+				}
+			),
+
+			// These functions filter data which is requested from the model
+			'get' => array(
+				'id' => function($id) {
+					return (string) $id;
+				}
+			),
+
+			// These functions filter data saved to the database
+			'dehydrate' => array(
+				'date' => function($value) {
+					return $value instanceof \DateTime ? new \MongoDate($value->getTimestamp()) : null;
+				}
+			),
+
+			// These function filter data queried from the database
+			'hydrate' => array(
+				'date' => function($value) {
+					if ($value === null) return null;
+					$date = new \DateTime();
+					$date->setTimestamp($value->sec);
+					return $date;
+				}
+			)
+		);
+
+		$this->relationshipFilters = array(
+			'belongsTo' => array(
+				'field' => 'id',
+				'get' => function($fieldName, $document, $query) {
+					return $query->where('_id', new \MongoId($document->get($fieldName)))->one();
+				},
+				'set' => function($fieldName, $document, $relation) {
+					return $document->$fieldName(new \MongoId($relation->id()));
+				}
+			),
+			'hasMany' => array(
+				'field' => null
+			)
+		);
+	}
+
+	// Getter / setter for fields
+	// Gets all fields or adds one or more fields
+	public function fields($fields = null)
+	{
+		if (func_num_args() == 0) {
+			return $this->fields;
+		}
+		foreach ($fields as $name => $options) {
+			if (is_string($options)) {
+				$this->fields[$options] = array();
+			}
+			else {
+				$this->fields[$name] = $options;
+			}
+		}
+		return $this;
+	}
+
+	// Clears all fields and relationships
+	public function clear()
+	{
+		$this->fields = array('_id' => array('type' => 'id'));
+		$this->relationships = array();
+		return $this;
 	}
 
 	// Adds one or more relationships
-	public function relationships($references)
+	public function relationships($relationships)
 	{
-		// Merge $relationships into $this->relationships;
+		foreach ($relationships as $name => $options) {
+			if (is_string($options)) {
+				$name = $options;
+				$options = array('type' => 'string');
+			}
+
+			if ($this->relationshipFilters[$options['type']]['field'] == 'id') {
+				if (!isset($options['fieldName'])) {
+					$options['fieldName'] = $name.'Id';
+				}
+				$this->fields[$options['fieldName']] = array('type' => 'id');
+			}
+
+			$this->relationships[$name] = $options;
+		}
 	}
 
 	public function hasField($field)
 	{
-		return true;
+		if (isset($this->fields[$field])) return true;
+		return false;
 	}
 
-	// Validates the object against its schema, returns an array of errors
+	public function hasRelationship($field)
+	{
+		if (isset($this->relationships[$field]))return true;
+		return false;
+	}
+
+	// Validates a field against its schema, returns an array of errors
 	public function validateField($field, $value)
 	{
-		// Validate the field here
-		return array();
+		// TODO
+	}
+
+	// Gets the data type for a field
+	public function fieldType($field)
+	{
+		return $this->fields[$field]['type'];
 	}
 
 	// Filters a field based on its type
-	public function filter($event, $field, $value)
+	public function filter($action, $field, $value)
 	{
 		$fieldType = $this->fieldType($field);
-		$filters = self::$filters[$event];
+		$filters = $this->filters[$action];
 		return isset($filters[$fieldType]) ? $filters[$fieldType]($value) : $value;
+	}
+
+	// Finds a relationship (no caching yet)
+	public function relationship($mongoat, $document, $name, $relation = null) {
+		$options = $this->relationships[$name];
+
+		if (func_num_args() == 3) {
+			$query = $mongoat->find($options['class']);
+			return $this->relationshipFilters[$options['type']]['get']($options['fieldName'], $document, $query);
+		}
+
+		return $this->relationshipFilters[$options['type']]['set']($options['fieldName'], $document, $relation);
 	}
 }
