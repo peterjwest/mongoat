@@ -1,4 +1,4 @@
 services:
     mongoat:
-      class: WhiteOctober\MongoatBundle\Mongoat
+        class: WhiteOctober\MongoatBundle\Core\Mongoat
         arguments: []
