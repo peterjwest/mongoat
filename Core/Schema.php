@@ -131,17 +131,20 @@ class Schema
 	public function relationships($relationships)
 	{
 		foreach ($relationships as $name => $options) {
-			if (is_string($options)) {
-				$name = $options;
-				$options = array('type' => 'string');
+
+
+			// Generates the foreign key field name, if neccessary
+			if (!isset($options['fieldName'])) {
+				$options['fieldName'] = $name.'Id';
 			}
 
+			// Sets a field for the relationship ID, if applicable
 			if ($this->relationshipFilters[$options['type']]['field'] == 'id') {
-				if (!isset($options['fieldName'])) {
-					$options['fieldName'] = $name.'Id';
-				}
 				$this->fields[$options['fieldName']] = array('type' => 'id');
 			}
+
+			// Adds the relationship name to the options
+			$options['name'] = $name;
 
 			$this->relationships[$name] = $options;
 		}
