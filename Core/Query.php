@@ -162,7 +162,7 @@ class Query
 	// Simple method to get results by page
 	public function page($page)
 	{
-		$this->page = $this->boundedInt($page, 1);
+		$this->page = max((int)$page, 1);
 		$this->skip = null;
 		return $this;
 	}
@@ -183,12 +183,6 @@ class Query
 	public function copy()
 	{
 		// TODO
-	}
-
-	// Bounds an int to a certain minimum
-	protected function boundedInt($value, $min)
-	{
-		return max((int) $value, $min);
 	}
 
 	// Gets the collection from the current Mongo database/connection
