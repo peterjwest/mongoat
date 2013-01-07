@@ -66,15 +66,41 @@ class Schema
 		$this->relationshipFilters = array(
 			'belongsTo' => array(
 				'field' => 'id',
-				'get' => function($fieldName, $document, $query) {
-					return $query->where('_id', new \MongoId($document->get($fieldName)))->one();
+				'get' => function($mongoat, $document, $options) {
+					return $mongoat
+						->find($options['class'])
+						->where('_id', $document->get($options['fieldName']))
+						->one();
 				},
-				'set' => function($fieldName, $document, $relation) {
-					return $document->$fieldName(new \MongoId($relation->id()));
+				'set' => function($mongoat, $document, $options, $relation) {
+					return $document->set($options['fieldName'], $relation);
 				}
 			),
 			'hasMany' => array(
-				'field' => null
+				'field' => null,
+				'get' => function($mongoat, $document, $options) {
+					return $mongoat
+						->find($options['class'])
+						->where($options['fieldName'], $document)
+						->all();
+				},
+				'set' => function($mongoat, $document, $options, $relations) {
+					$mongoat->update($options['class'])
+						->where($options['fieldName'], $document)
+						->changes(array('$set' => array($options['fieldName'] => null)))
+						->all();
+
+					$mongoat->update($options['class'])
+						->where('_id', array('$in' => $relations))
+						->changes(array('$set' => array($options['fieldName'] => $document)))
+						->all();
+
+					// Set relations on model
+					//$mongo->cache($document, $relation)->set($relations);
+					//$relations->set($inverseField, $document);
+
+					return $document;
+				}
 			)
 		);
 	}
