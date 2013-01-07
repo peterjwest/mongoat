@@ -41,7 +41,6 @@ class Mongoat
     // Gets the specified collection for the current connection
     public function collection($document)
     {
-        var_dump($this->collectionName(get_class($document)));
         return $this->connection()->collection($this->collectionName(get_class($document)));
     }
 
@@ -62,9 +61,9 @@ class Mongoat
 	}
 
     // Creates an update query for a model
-    public function update($model, $changes)
+    public function update($model)
     {
-        return $this->find($model)->type('update')->changes($changes);
+        return $this->find($model)->type('update');
     }
 
     // Creates a delete query for a model

@@ -14,6 +14,7 @@ class Query
 	protected $skip = null;
 	protected $page = null;
 	protected $fields = null;
+	protected $options = array('safe' => true);
 
     // Adds reference to Mongoat repository manager
 	public function __construct($mongoat, $class)
@@ -40,9 +41,11 @@ class Query
 		if ($this->type == 'find') {
 
 			// Sets criteria and required fields for the query
-			$coll = $this->collection();
-			if (is_array($this->fields)) $cursor = $coll->find($this->criteria, $this->fields);
-			else $cursor = $coll->find($this->criteria);
+			if (is_array($this->fields)) $cursor = $this->collection()->find(
+				$this->schema()->filterCriteria($this->criteria),
+				$this->fields
+			);
+			else $cursor = $this->collection()->find($this->schema()->filterCriteria($this->criteria));
 
 			// Applies limits and results to skip
 			if ($this->limit !== null) $cursor->limit($this->limit);
@@ -59,12 +62,19 @@ class Query
 
 		if ($this->type == 'update') {
 			$this->options['multiple'] = true;
-			return $this->collection()->update($this->criteria, $this->changes, $this->options);
+			return $this->collection()->update(
+				$this->schema()->filterCriteria($this->criteria),
+				$this->schema()->filterCriteria($this->changes),
+				$this->options
+			);
 		}
 
 		if ($this->type == 'delete') {
 			$this->options['justOne'] = false;
-			return $this->collection()->remove($this->criteria, $this->options);
+			return $this->collection()->remove(
+				$this->schema()->filterCriteria($this->criteria),
+				$this->options
+			);
 		}
 	}
 
@@ -74,9 +84,11 @@ class Query
 		if ($this->type == 'find') {
 
 			// Sets criteria and required fields for the query
-			$coll = $this->collection();
-			if (is_array($this->fields)) $data = $coll->findOne($this->criteria, $this->fields);
-			else $data = $coll->findOne($this->criteria);
+			if (is_array($this->fields)) $data = $this->collection()->findOne(
+				$this->schema()->filterCriteria($this->criteria),
+				$this->fields
+			);
+			else $data = $this->collection()->findOne($this->schema()->filterCriteria($this->criteria));
 
 			// Instantiates and hydrates models
 			return $data === null ? null : $this->mongoat->create($this->class)->hydrate($data)->unsaved(false);
@@ -84,19 +96,26 @@ class Query
 
 		if ($this->type == 'update') {
 			$this->options['multiple'] = false;
-			return $this->collection()->update($this->criteria, $this->changes, $this->options);
+			return $this->collection()->update(
+				$this->schema()->filterCriteria($this->criteria),
+				$this->schema()->filterCriteria($this->changes),
+				$this->options
+			);
 		}
 
 		if ($this->type == 'delete') {
 			$this->options['justOne'] = true;
-			return $this->collection()->remove($this->criteria, $this->options);
+			return $this->collection()->remove(
+				$this->schema()->filterCriteria($this->criteria),
+				$this->options
+			);
 		}
 	}
 
 	// Runs the query as a count query
 	public function count()
 	{
-		return $this->collection()->count($query);
+		return $this->collection()->count($this->schema()->filterCriteria($this->criteria));
 	}
 
 	// Sets which fields to return.
@@ -151,6 +170,7 @@ class Query
 	public function changes($changes)
 	{
 		$this->changes = $changes;
+		return $this;
 	}
 
 	// Setter to toggle an upsert query

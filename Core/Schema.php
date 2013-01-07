@@ -14,6 +14,8 @@ class Schema
 			// These functions filter data set on the model
 			'set' => array(
 				'id' => function($id) {
+					if ($id instanceof \Mongoid) return $id;
+					if ($id instanceof Model) return $id->mongoId();
 					return new \MongoId($id);
 				},
 				'string' => function($value) {
@@ -85,12 +87,8 @@ class Schema
 			return $this->fields;
 		}
 		foreach ($fields as $name => $options) {
-			if (is_string($options)) {
-				$this->fields[$options] = array();
-			}
-			else {
-				$this->fields[$name] = $options;
-			}
+			if (is_string($options)) $this->fields[$options] = array();
+			else $this->fields[$name] = $options;
 		}
 		return $this;
 	}
@@ -131,8 +129,7 @@ class Schema
 
 	public function hasRelationship($field)
 	{
-		if (isset($this->relationships[$field]))return true;
-		return false;
+		return isset($this->relationships[$field]);
 	}
 
 	// Validates a field against its schema, returns an array of errors
@@ -155,15 +152,28 @@ class Schema
 		return isset($filters[$fieldType]) ? $filters[$fieldType]($value) : $value;
 	}
 
+	// Deep filter of data passed to Mongo
+    public function filterCriteria($data, $field = null)
+    {
+        $filtered = array();
+        foreach ($data as $key => $value) {
+            if (!preg_match('/^\$[a-z]+$/i', $key) && !is_numeric($key)) $field = $key;
+
+            if (is_array($value)) $filtered[$key] = $this->filterCriteria($value, $field);
+
+            else if ($field !== null) {
+                $value = $this->filter('set', $field, $value);
+                $value = $this->filter('dehydrate', $field, $value);
+                $filtered[$key] = $value;
+            }
+        }
+        return $filtered;
+    }
+
 	// Finds a relationship (no caching yet)
 	public function relationship($mongoat, $document, $name, $relation = null) {
 		$options = $this->relationships[$name];
-
-		if (func_num_args() == 3) {
-			$query = $mongoat->find($options['class']);
-			return $this->relationshipFilters[$options['type']]['get']($options['fieldName'], $document, $query);
-		}
-
-		return $this->relationshipFilters[$options['type']]['set']($options['fieldName'], $document, $relation);
+		$filters = $this->relationshipFilters[$options['type']];
+		return $filters[func_num_args() == 3 ? 'get' : 'set']($mongoat, $document, $options, $relation);
 	}
 }

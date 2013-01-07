@@ -13,6 +13,8 @@ class Model
 	protected $mongoat;
 	protected $schema;
     protected $unsaved = true;
+    protected $relationshipChanges = array();
+    protected $options = array('safe' => true);
 
     // Placeholder function for schema definition
     // Override this in child classes to define a schema
@@ -47,10 +49,16 @@ class Model
         return $this;
     }
 
-    // Gets the ID for the document
+    // Gets the ID as a string for the document
     public function id()
     {
         return $this->get('_id');
+    }
+
+    // Gets the mongo ID for the document
+    public function mongoId()
+    {
+        return $this->data['_id'];
     }
 
     // Allows generic getter/setter methods
@@ -117,28 +125,22 @@ class Model
     // Saves a document
     public function save()
     {
-        $options = array('safe' => true);
-        $query = array('_id' => $this->id());
-
         $collection = $this->mongoat()->collection($this);
-        $data = $this->dehydrate();
+        $data = $this->schema()->filterCriteria($this->dehydrate());
 
         if ($this->unsaved()) {
-            $response = $collection->insert($data, $options);
+            $response = $collection->insert($data, $this->options);
             $this->unsaved(false);
             return $response;
         }
-        return $collection->update($query, $data, $options);
+        return $collection->update(array('_id' => $this), $data, $this->options);
     }
 
     // Deletes a document
     public function delete()
     {
-        $options = array('safe' => true);
-        $query = array('_id' => $this->id());
-
         $collection = $this->mongoat()->collection($this);
-        return $collection->remove($query, $data, $options);
+        return $collection->remove(array('_id' => $this), $data, $this->options);
     }
 
     // Sets default fields for the model
