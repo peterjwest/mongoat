@@ -4,12 +4,13 @@ namespace WhiteOctober\MongoatBundle\Core;
 
 class Schema
 {
-	protected $filters = array();
+	public $filters = array();
 	protected $fields = array('_id' => array('type' => 'id'));
 	public $relationships = array();
 
 	public function __construct()
 	{
+		$that = $this;
 		$this->filters = array(
 			// These functions filter data set on the model
 			'set' => array(
@@ -30,9 +31,6 @@ class Schema
 				'boolean' => function($value) {
 					return !!$value;
 				},
-				'array' => function($value) {
-					return is_array($value) ? $value : array($value);
-				},
 				'date' => function($value) {
 					return is_string($value) || is_numeric($value) ? new \DateTime($value) : $value;
 				}
@@ -47,6 +45,7 @@ class Schema
 
 			// These functions filter data saved to the database
 			'dehydrate' => array(
+				'id' => function($id) { return $id; },
 				'date' => function($value) {
 					return $value instanceof \DateTime ? new \MongoDate($value->getTimestamp()) : null;
 				}
@@ -63,9 +62,18 @@ class Schema
 			)
 		);
 
+		// Meta filter for array fields
+		foreach($this->filters as $action => $filters) {
+			$this->filters[$action]['array'] = function($type, $value) use ($that, $action) {
+				$array = is_array($value) ? $value : array($value);
+				return array_map($that->filters[$action][$type], $array);
+			};
+		}
+
 		$this->relationshipFilters = array(
 			'belongsTo' => array(
-				'field' => 'id',
+				'foreignKey' => true,
+				'multiple' => false,
 				'get' => function($mongoat, $document, $options) {
 					return $mongoat
 						->find($options['class'])
@@ -100,7 +108,8 @@ class Schema
 				}
 			),
 			'hasMany' => array(
-				'field' => null,
+				'foreignKey' => false,
+				'multiple' => true,
 				'get' => function($mongoat, $document, $options) {
 					return $mongoat
 						->find($options['class'])
@@ -168,15 +177,22 @@ class Schema
 	{
 		foreach ($relationships as $name => $options) {
 
+			$filter = $this->relationshipFilters[$options['type']];
 
-			// Generates the foreign key field name, if neccessary
+			// Generates the foreign key field name for inverse relationships
+			if (!$filter['foreignKey'] && isset($options['inverse'])) {
+				$options['fieldName'] = $options['inverse'].'Id';
+			}
+
+			// Generates default foreign key field name
 			if (!isset($options['fieldName'])) {
 				$options['fieldName'] = $name.'Id';
 			}
 
 			// Sets a field for the relationship ID, if applicable
-			if ($this->relationshipFilters[$options['type']]['field'] == 'id') {
-				$this->fields[$options['fieldName']] = array('type' => 'id');
+			if ($filter['foreignKey']) {
+				$type = $filter['multiple'] ? array('array', 'id') : 'id';
+				$this->fields[$options['fieldName']] = array('type' => $type);
 			}
 
 			// Adds the relationship name to the options
@@ -203,18 +219,33 @@ class Schema
 		// TODO
 	}
 
-	// Gets the data type for a field
+	// Gets the data types for a field
 	public function fieldType($field)
 	{
-		return $this->fields[$field]['type'];
+		$type = isset($this->fields[$field]) ? $this->fields[$field]['type'] : null;
+		return is_array($type) ? $type[0] : $type;
+	}
+
+	public function fieldSubtype($field)
+	{
+		$type = $this->fields[$field]['type'];
+		return is_array($type) ? $type[1] : null;
 	}
 
 	// Filters a field based on its type
 	public function filter($action, $field, $value)
 	{
 		$fieldType = $this->fieldType($field);
+		$fieldSubtype = $this->fieldSubtype($field);
 		$filters = $this->filters[$action];
-		return isset($filters[$fieldType]) ? $filters[$fieldType]($value) : $value;
+
+		// Find type
+		$type = isset($filters[$fieldType]) ? $filters[$fieldType] : null;
+
+		if (!$type) return $value;
+
+		// Call with subtype, if it exists
+		return $fieldSubtype ? $type($fieldSubtype, $value) : $type($value);
 	}
 
 	// Deep filter of data passed to Mongo
@@ -224,7 +255,9 @@ class Schema
         foreach ($data as $key => $value) {
             if (!preg_match('/^\$[a-z]+$/i', $key) && !is_numeric($key)) $field = $key;
 
-            if (is_array($value)) $filtered[$key] = $this->filterCriteria($value, $field);
+            if (is_array($value) && ($this->fieldType($field) != 'array' || !$this->flatArray($value))) {
+            	$filtered[$key] = $this->filterCriteria($value, $field);
+            }
 
             else if ($field !== null) {
                 $value = $this->filter('set', $field, $value);
@@ -241,4 +274,11 @@ class Schema
 		$filters = $this->relationshipFilters[$options['type']];
 		return $filters[func_num_args() == 3 ? 'get' : 'set']($mongoat, $document, $options, $relation);
 	}
+
+	// Determines if an array is flat i.e. contains no arrays
+    protected function flatArray($array)
+    {
+    	foreach($array as $item) if (is_array($item)) return false;
+    	return true;
+    }
 }
