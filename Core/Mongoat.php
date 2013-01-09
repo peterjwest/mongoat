@@ -120,7 +120,6 @@ class Mongoat
 	// Getter / setter for the Mongo collection name
     public function collectionName($class)
     {
-
         if (!isset($class::$collectionNames[$class])) {
             $class::$collectionNames[$class] = $this->generateCollectionName($class);
         }

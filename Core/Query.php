@@ -6,6 +6,7 @@ class Query
 {
 	protected $mongoat;
 	protected $class;
+	protected $schema;
 	protected $criteria = array();
 	protected $changes = array();
 	protected $relations = array();
@@ -22,6 +23,19 @@ class Query
 		$this->mongoat = $mongoat;
 		$this->class = $class;
 	}
+
+	// Getter / setter for Schema instance
+    public function schema($schema = null)
+    {
+        if (func_num_args() == 0) {
+            if ($this->schema === null) {
+	            $this->schema = $this->mongoat->create($this->class)->schema();
+            }
+            return $this->schema;
+        }
+        $this->schema = $schema;
+        return $this;
+    }
 
 	// Adds one or more criteria to the query
 	public function where($criteria, $criterion = null)
@@ -82,7 +96,6 @@ class Query
 	public function one()
 	{
 		if ($this->type == 'find') {
-
 			// Sets criteria and required fields for the query
 			if (is_array($this->fields)) $data = $this->collection()->findOne(
 				$this->schema()->filterCriteria($this->criteria),
