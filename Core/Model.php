@@ -133,14 +133,14 @@ class Model
             $this->unsaved(false);
             return $response;
         }
-        return $collection->update(array('_id' => $this), $data, $this->options);
+        return $collection->update(array('_id' => $this->mongoId()), $data, $this->options);
     }
 
     // Deletes a document
     public function delete()
     {
         $collection = $this->mongoat()->collection($this);
-        return $collection->remove(array('_id' => $this), $data, $this->options);
+        return $collection->remove(array('_id' => $this->mongoId()), $data, $this->options);
     }
 
     // Sets default fields for the model
