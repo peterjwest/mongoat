@@ -76,6 +76,29 @@ class Schema
 					return $document->set($options['fieldName'], $relation);
 				}
 			),
+			'hasOne' => array(
+				'foreignKey' => false,
+				'multiple' => false,
+				'get' => function($mongoat, $document, $options) {
+					return $mongoat
+						->find($options['class'])
+						->where($options['fieldName'], $document)
+						->one();
+				},
+				'set' => function($mongoat, $document, $options, $relations) {
+					$mongoat->update($options['class'])
+						->where($options['fieldName'], $document)
+						->changes(array('$set' => array($options['fieldName'] => null)))
+						->all();
+
+					$mongoat->update($options['class'])
+						->where('_id', array('$in' => $relations))
+						->changes(array('$set' => array($options['fieldName'] => $document)))
+						->all();
+
+					return $document;
+				}
+			),
 			'hasMany' => array(
 				'field' => null,
 				'get' => function($mongoat, $document, $options) {
@@ -100,6 +123,19 @@ class Schema
 					//$relations->set($inverseField, $document);
 
 					return $document;
+				}
+			),
+			'belongsToMany' => array(
+				'foreignKey' => true,
+				'multiple' => true,
+				'get' => function($mongoat, $document, $options) {
+					return $mongoat
+						->find($options['class'])
+						->where('_id', array('$in' => $document->get($options['fieldName'])))
+						->all();
+				},
+				'set' => function($mongoat, $document, $options, $relations) {
+					return $document->set($options['fieldName'], $relations);
 				}
 			)
 		);
