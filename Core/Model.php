@@ -13,7 +13,8 @@ class Model
 	protected $mongoat;
 	protected $schema;
     protected $unsaved = true;
-    protected $relationshipChanges = array();
+    protected $relationshipUpdates = array();
+    protected $relationshipCache = array();
     protected $options = array('safe' => true);
 
     // Placeholder function for schema definition
@@ -39,7 +40,7 @@ class Model
                 $class = get_class($this);
                 if (!isset(static::$schemaCaches[$class])) {
 
-                    static::$schemaCaches[$class] = $this->definition(new static::$schemaClass());
+                    static::$schemaCaches[$class] = $this->definition(new static::$schemaClass($this->mongoat));
                 }
                 $this->schema = static::$schemaCaches[$class];
             }
@@ -65,7 +66,7 @@ class Model
     public function __call($method, $arguments)
     {
         // Rails style getter/setters using number of arguments
-        if ($this->schema()->hasField($method) || $this->schema()->hasRelationship($method)) {
+        if ($this->schema()->hasField($method) || $this->schema()->relationship($method)) {
             if (count($arguments) == 0) {
                 return $this->get($method);
             }
@@ -86,14 +87,18 @@ class Model
     }
 
     // Get a field by name
-    public function get($name)
+    public function get($name, $forceReload = false)
     {
         if ($this->schema()->hasField($name)) {
             return $this->schema()->filter('get', $name, $this->data[$name]);
         }
 
-        if ($this->schema()->hasRelationship($name)) {
-            return $this->schema()->relationship($this->mongoat(), $this, $name);
+        if ($this->schema()->relationship($name)) {
+            // Updates the cache not yet cached, or if forced
+            if (!isset($this->relationshipCache[$name]) || $forceReload) {
+                $this->relationshipCache[$name] = $this->find($name);
+            }
+            return $this->relationshipCache[$name];
         }
 
         throw new \Exception("$name field does not exist");
@@ -107,11 +112,13 @@ class Model
             return $this;
         }
 
-        if ($this->schema()->hasRelationship($name)) {
-            return $this->schema()->relationship($this->mongoat(), $this, $name, $value);
+        if ($relationship = $this->schema()->relationship($name)) {
+            $relationship->set($this, $value);
+            $this->relationshipCache[$name] = $value;
+            return $this;
         }
 
-        throw new \Exception("$name field does not exist");
+        throw new \Exception("$name field does not exist in ".get_class($this));
     }
 
     // Returns whether the document is unsaved or not
@@ -128,12 +135,52 @@ class Model
         $collection = $this->mongoat()->collection($this);
         $data = $this->schema()->filterCriteria($this->dehydrate());
 
+        // Updates or inserts the model, depending on whether it is unsaved
         if ($this->unsaved()) {
             $response = $collection->insert($data, $this->options);
             $this->unsaved(false);
-            return $response;
         }
-        return $collection->update(array('_id' => $this->mongoId()), $data, $this->options);
+        else {
+            $response = $collection->update(array('_id' => $this->mongoId()), $data, $this->options);
+        }
+
+        // Update all relationships which have been scheduled
+        foreach ($this->relationshipUpdates as $name => $relations) {
+            $this->schema()->relationship($name)->update($this, $relations);
+        }
+        $this->relationshipUpdates = array();
+
+        return $response;
+    }
+
+    // Adds a value to a field or relationship
+    public function add($name, $value)
+    {
+        if ($this->schema()->hasField($name)) {
+            $this->data[$name] = $this->schema()->filter('set', $name, null);
+            return $this;
+        }
+
+        if ($this->schema()->relationship($name)) {
+            return $this->schema()->relationship($name)->add($this, $value);
+        }
+
+        throw new \Exception("$name field does not exist");
+    }
+
+    // Removes a value from a field or relationship
+    public function remove($name, $value)
+    {
+        if ($this->schema()->hasField($name)) {
+            $this->data[$name] = $this->schema()->filter('set', $name, null);
+            return $this;
+        }
+
+        if ($this->schema()->relationship($name)) {
+            return $this->schema()->relationship($name)->remove($this, $value);
+        }
+
+        throw new \Exception("$name field does not exist");
     }
 
     // Deletes a document
@@ -150,6 +197,14 @@ class Model
             $this->set($name, isset($options['default']) ? $options['default'] : null);
         }
         return $this;
+    }
+
+    // Creates a query for a relationship
+    public function find($name)
+    {
+        if ($this->schema()->relationship($name)) {
+            return $this->schema()->relationship($name)->get($this);
+        }
     }
 
     // Dehydrates data to be inserted into the database
@@ -171,5 +226,11 @@ class Model
             $this->data[$name] = $this->schema()->filter('hydrate', $name, $value);
         }
         return $this;
+    }
+
+    // Schedules a relationship to be updated on save
+    public function scheduleUpdate($name, $relations)
+    {
+        $this->relationshipUpdates[$name] = $relations;
     }
 }

@@ -127,7 +127,7 @@ class Mongoat
     }
 
     // Gets the full class by prepending the default model namespace
-    protected function fullClass($class)
+    public function fullClass($class)
     {
         return class_exists($class) ? $class : $this->modelNamespace.'\\'.$class;
     }

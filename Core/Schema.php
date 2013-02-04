@@ -4,12 +4,20 @@ namespace WhiteOctober\MongoatBundle\Core;
 
 class Schema
 {
-	public $filters = array();
+	protected $mongoat;
 	protected $fields = array('_id' => array('type' => 'id'));
+	public $filters = array();
 	public $relationships = array();
+	public $relationshipTypes = array(
+		'hasOne' => 'WhiteOctober\MongoatBundle\Core\Relationships\HasOne',
+		'hasMany' => 'WhiteOctober\MongoatBundle\Core\Relationships\HasMany',
+		'belongsTo' => 'WhiteOctober\MongoatBundle\Core\Relationships\BelongsTo',
+		'belongsToMany' => 'WhiteOctober\MongoatBundle\Core\Relationships\BelongsToMany'
+	);
 
-	public function __construct()
+	public function __construct($mongoat)
 	{
+		$this->mongoat = $mongoat;
 		$that = $this;
 		$this->filters = array(
 			// These functions filter data set on the model
@@ -53,6 +61,7 @@ class Schema
 
 			// These function filter data queried from the database
 			'hydrate' => array(
+				'id' => function($id) { return $id; },
 				'date' => function($value) {
 					if ($value === null) return null;
 					$date = new \DateTime();
@@ -69,85 +78,6 @@ class Schema
 				return array_map($that->filters[$action][$type], $array);
 			};
 		}
-
-		$this->relationshipFilters = array(
-			'belongsTo' => array(
-				'foreignKey' => true,
-				'multiple' => false,
-				'get' => function($mongoat, $document, $options) {
-					return $mongoat
-						->find($options['class'])
-						->where('_id', $document->get($options['fieldName']))
-						->one();
-				},
-				'set' => function($mongoat, $document, $options, $relation) {
-					return $document->set($options['fieldName'], $relation);
-				}
-			),
-			'hasOne' => array(
-				'foreignKey' => false,
-				'multiple' => false,
-				'get' => function($mongoat, $document, $options) {
-					return $mongoat
-						->find($options['class'])
-						->where($options['fieldName'], $document)
-						->one();
-				},
-				'set' => function($mongoat, $document, $options, $relations) {
-					$mongoat->update($options['class'])
-						->where($options['fieldName'], $document)
-						->changes(array('$set' => array($options['fieldName'] => null)))
-						->all();
-
-					$mongoat->update($options['class'])
-						->where('_id', array('$in' => $relations))
-						->changes(array('$set' => array($options['fieldName'] => $document)))
-						->all();
-
-					return $document;
-				}
-			),
-			'hasMany' => array(
-				'foreignKey' => false,
-				'multiple' => true,
-				'get' => function($mongoat, $document, $options) {
-					return $mongoat
-						->find($options['class'])
-						->where($options['fieldName'], $document)
-						->all();
-				},
-				'set' => function($mongoat, $document, $options, $relations) {
-					$mongoat->update($options['class'])
-						->where($options['fieldName'], $document)
-						->changes(array('$set' => array($options['fieldName'] => null)))
-						->all();
-
-					$mongoat->update($options['class'])
-						->where('_id', array('$in' => $relations))
-						->changes(array('$set' => array($options['fieldName'] => $document)))
-						->all();
-
-					// Set relations on model
-					//$mongo->cache($document, $relation)->set($relations);
-					//$relations->set($inverseField, $document);
-
-					return $document;
-				}
-			),
-			'belongsToMany' => array(
-				'foreignKey' => true,
-				'multiple' => true,
-				'get' => function($mongoat, $document, $options) {
-					return $mongoat
-						->find($options['class'])
-						->where('_id', array('$in' => $document->get($options['fieldName'])))
-						->all();
-				},
-				'set' => function($mongoat, $document, $options, $relations) {
-					return $document->set($options['fieldName'], $relations);
-				}
-			)
-		);
 	}
 
 	// Getter / setter for fields
@@ -172,33 +102,12 @@ class Schema
 		return $this;
 	}
 
-	// Adds one or more relationships
+	// Adds one or more relationship definitions
 	public function relationships($relationships)
 	{
 		foreach ($relationships as $name => $options) {
-
-			$filter = $this->relationshipFilters[$options['type']];
-
-			// Generates the foreign key field name for inverse relationships
-			if (!$filter['foreignKey'] && isset($options['inverse'])) {
-				$options['fieldName'] = $options['inverse'].'Id';
-			}
-
-			// Generates default foreign key field name
-			if (!isset($options['fieldName'])) {
-				$options['fieldName'] = $name.'Id';
-			}
-
-			// Sets a field for the relationship ID, if applicable
-			if ($filter['foreignKey']) {
-				$type = $filter['multiple'] ? array('array', 'id') : 'id';
-				$this->fields[$options['fieldName']] = array('type' => $type);
-			}
-
-			// Adds the relationship name to the options
-			$options['name'] = $name;
-
-			$this->relationships[$name] = $options;
+			$class = $this->mongoat->fullClass($this->relationshipTypes[$options['type']]);
+			$this->relationships[$name] = new $class($this->mongoat, $this, $name, $options);
 		}
 	}
 
@@ -206,11 +115,6 @@ class Schema
 	{
 		if (isset($this->fields[$field])) return true;
 		return false;
-	}
-
-	public function hasRelationship($field)
-	{
-		return isset($this->relationships[$field]);
 	}
 
 	// Validates a field against its schema, returns an array of errors
@@ -268,11 +172,9 @@ class Schema
         return $filtered;
     }
 
-	// Finds a relationship (no caching yet)
-	public function relationship($mongoat, $document, $name, $relation = null) {
-		$options = $this->relationships[$name];
-		$filters = $this->relationshipFilters[$options['type']];
-		return $filters[func_num_args() == 3 ? 'get' : 'set']($mongoat, $document, $options, $relation);
+	// Gets a relationship
+	public function relationship($name) {
+		return isset($this->relationships[$name]) ? $this->relationships[$name] : null;
 	}
 
 	// Determines if an array is flat i.e. contains no arrays
