@@ -1,8 +1,8 @@
 <?php
 
-namespace WhiteOctober\MongoatBundle\Core\Relationships;
+namespace WhiteOctober\MongoatBundle\Core\RelationshipTypes;
 
-class HasOne extends Relationship
+class HasOne extends RelationshipType
 {
     protected $foreignKey = false;
     protected $multiple = false;

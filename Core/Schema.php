@@ -9,15 +9,21 @@ class Schema
 	public $filters = array();
 	public $relationships = array();
 	public $relationshipTypes = array(
-		'hasOne' => 'WhiteOctober\MongoatBundle\Core\Relationships\HasOne',
-		'hasMany' => 'WhiteOctober\MongoatBundle\Core\Relationships\HasMany',
-		'belongsTo' => 'WhiteOctober\MongoatBundle\Core\Relationships\BelongsTo',
-		'belongsToMany' => 'WhiteOctober\MongoatBundle\Core\Relationships\BelongsToMany'
+		'hasOne' => 'WhiteOctober\MongoatBundle\Core\RelationshipTypes\HasOne',
+		'hasMany' => 'WhiteOctober\MongoatBundle\Core\RelationshipTypes\HasMany',
+		'belongsTo' => 'WhiteOctober\MongoatBundle\Core\RelationshipTypes\BelongsTo',
+		'belongsToMany' => 'WhiteOctober\MongoatBundle\Core\RelationshipTypes\BelongsToMany'
 	);
 
 	public function __construct($mongoat)
 	{
 		$this->mongoat = $mongoat;
+		$this->filters();
+	}
+
+	// Creates filters for fields
+	protected function filters()
+	{
 		$that = $this;
 		$this->filters = array(
 			// These functions filter data set on the model

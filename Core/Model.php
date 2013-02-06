@@ -9,6 +9,7 @@ class Model
     static $schemaClass = "WhiteOctober\MongoatBundle\Core\Schema";
     static $collectionNames = array();
     static $schemaCaches = array();
+
     protected $data = array();
 	protected $mongoat;
 	protected $schema;
