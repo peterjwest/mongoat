@@ -5,6 +5,15 @@ namespace WhiteOctober\MongoatBundle\Core;
 class Schema
 {
 	static $relationshipSchemaClass = 'WhiteOctober\MongoatBundle\Core\RelationshipSchema';
+	static $operatorTypes = array(
+		'polymorphicArray' => array('$push' => true, '$pull' => true, '$addToSet' => true),
+		'arrayElement' => array('$all' => true, '$in' => true, '$nin' => true),
+		'fieldName' => array('$rename' => true),
+		'integer' => array('$size' => true, '$type' => true),
+		'boolean' => array('$exists' => true),
+		'index' => array('$pop' => true),
+		'string' => array('$regex' => true, '$options' => true)
+	);
 
 	protected $mongoat;
 	protected $fields = array('_id' => array('type' => 'id'));
@@ -25,8 +34,9 @@ class Schema
 			// These functions filter data set on the model
 			'set' => array(
 				'id' => function($id) {
-					if ($id instanceof \Mongoid) return $id;
+					if ($id instanceof \MongoId) return $id;
 					if ($id instanceof Model) return $id->mongoId();
+					if ($id === null) return null;
 					return new \MongoId($id);
 				},
 				'string' => function($value) {
@@ -42,7 +52,13 @@ class Schema
 					return !!$value;
 				},
 				'date' => function($value) {
-					return is_string($value) || is_numeric($value) ? new \DateTime($value) : $value;
+					if (is_string($value)) return new \DateTime($value);
+					if (is_int($value)) {
+						$date = new \DateTime();
+						$date->setTimestamp($value);
+						return $date;
+					}
+					return $value;
 				}
 			),
 
@@ -77,7 +93,7 @@ class Schema
 		foreach($this->filters as $action => $filters) {
 			$this->filters[$action]['array'] = function($type, $value) use ($that, $action) {
 				$array = is_array($value) ? $value : array($value);
-				return array_map($that->filters[$action][$type], $array);
+				return array_map($that->filters[$action][$type], array_values($array));
 			};
 		}
 	}
@@ -126,48 +142,103 @@ class Schema
 	}
 
 	// Gets the data types for a field
-	public function fieldType($field)
+	protected function fieldType($field)
 	{
 		$type = isset($this->fields[$field]) ? $this->fields[$field]['type'] : null;
 		return is_array($type) ? $type[0] : $type;
 	}
 
-	public function fieldSubtype($field)
+	protected function fieldSubtype($field)
 	{
 		$type = $this->fields[$field]['type'];
 		return is_array($type) ? $type[1] : null;
 	}
 
-	// Filters a field based on its type
+	// Filters a field value through a certain action
 	public function filter($action, $field, $value)
 	{
-		$fieldType = $this->fieldType($field);
-		$fieldSubtype = $this->fieldSubtype($field);
+		$type = $this->fieldType($field);
+		$subtype = $this->fieldSubtype($field);
+
+		return $this->filterType($action, $type, $subtype, $value);
+	}
+
+	// Filters a value by its type through a certain action
+	public function filterType($action, $type, $subtype, $value)
+	{
+		// Finds appropriate filter
 		$filters = $this->filters[$action];
 
-		// Find type
-		$type = isset($filters[$fieldType]) ? $filters[$fieldType] : null;
-
-		if (!$type) return $value;
+		// If there's no filter, return the value unaltered;
+		if (!isset($filters[$type])) return $value;
 
 		// Call with subtype, if it exists
-		return $fieldSubtype ? $type($fieldSubtype, $value) : $type($value);
+		return $subtype ? $filters[$type]($subtype, $value) : $filters[$type]($value);
 	}
 
 	// Deep filter of data passed to Mongo
-    public function filterCriteria($data, $field = null)
+    public function filterCriteria($data, $field = null, $parent = null)
     {
         $filtered = array();
         foreach ($data as $key => $value) {
             if (!preg_match('/^\$[a-z]+$/i', $key) && !is_numeric($key)) $field = $key;
 
             if (is_array($value) && ($this->fieldType($field) != 'array' || !$this->flatArray($value))) {
-            	$filtered[$key] = $this->filterCriteria($value, $field);
+            	$filtered[$key] = $this->filterCriteria($value, $field, $key);
             }
 
             else if ($field !== null) {
-                $value = $this->filter('set', $field, $value);
-                $value = $this->filter('dehydrate', $field, $value);
+
+            	// Gets default types for the field
+            	$type = $this->fieldType($field);
+				$subtype = $this->fieldSubtype($field);
+
+				// These operators make the field within take a single value
+				if (isset(static::$operatorTypes['polymorphicArray'][$parent])) {
+					$type = $subtype;
+					$subtype = null;
+				}
+
+				// These operators make the field within take an array of values
+				if (isset(static::$operatorTypes['arrayElement'][$key])) {
+					$subtype = $type;
+					$type = 'array';
+				}
+
+				// These operators make the field within take an integer value
+				if (isset(static::$operatorTypes['index'][$parent])) {
+					$type = 'integer';
+					$subtype = null;
+				}
+
+				// These operators make the field within take a string value
+				if (isset(static::$operatorTypes['fieldName'][$parent])) {
+					$type = 'string';
+					$subtype = null;
+				}
+
+				// These operators take integer values
+				if (isset(static::$operatorTypes['integer'][$key])) {
+					$type = 'integer';
+					$subtype = null;
+				}
+
+				// These operators take boolean values
+				if (isset(static::$operatorTypes['boolean'][$key])) {
+					$type = 'boolean';
+					$subtype = null;
+				}
+
+				// These operators take string values
+				if (isset(static::$operatorTypes['string'][$key])) {
+					$type = 'string';
+					$subtype = null;
+				}
+
+				// Runs filters on the fields
+				$value = $this->filterType('set', $type, $subtype, $value);
+				$value = $this->filterType('dehydrate', $type, $subtype, $value);
+
                 $filtered[$key] = $value;
             }
         }

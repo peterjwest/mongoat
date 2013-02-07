@@ -77,12 +77,22 @@ class Relationship
 
     public function set($value)
     {
+        // Clear any updates pending
+        $this->updates = array();
+
         // Removes this object from previously related objects, if they have been loaded
         if ($this->schema->inverse() && isset($this->value)) {
             $documents = $this->schema->multiple() ? $this->value : array($this->value);
             foreach ($documents as $document) {
                 $document->relationship($this->schema->inverse())->remove($this->model);
             }
+
+            if ($this->schema->foreignKey()) {
+                foreach ($documents as $document) {
+                    $document->relationship($this->schema->inverse())->update('remove', $this->model);
+                }
+            }
+            else $this->update('remove', $this->value);
         }
 
         $this->value = $value;
@@ -94,6 +104,13 @@ class Relationship
             foreach ($documents as $document) {
                 $document->relationship($this->schema->inverse())->add($this->model);
             }
+
+            if ($this->schema->foreignKey()) {
+                foreach ($documents as $document) {
+                    $document->relationship($this->schema->inverse())->update('add', $this->model);
+                }
+            }
+            else $this->update('add', $this->value);
         }
 
         return $this;
@@ -121,28 +138,59 @@ class Relationship
     {
         if ($this->schema->multiple()) {
             if (!isset($this->value)) $this->value = array();
-            $this->value = array_filter($this->value, function($document) use ($old) {
+            $this->value = array_values(array_filter($this->value, function($document) use ($old) {
                 return $document->id() !== $old->id();
-            });
+            }));
         }
         else $this->value = null;
 
         if ($this->schema->foreignKey()) $this->model->set($this->schema->fieldName(), $this->value);
     }
 
-    // Saves any changes to the relationship
-    public function save()
-    {
-        return $this;
-    }
-
     // Populates an existing object into a relationship, so related documents use the same instances
     public function populate($value)
     {
-        if (!isset($this->value)) {
-            $this->populations[] = $value;
+        if (!isset($this->value)) $this->populations[] = $value;
+        return $this;
+    }
+
+    // Schedules an update to be performed on save of the model
+    public function update($type, $value)
+    {
+        $this->updates[] = array('type' => $type, 'value' => $value);
+        return $this;
+    }
+
+    // Saves any changes to the relationship
+    public function save()
+    {
+        foreach($this->updates as $update) {
+
+            // TODO use correct 'multiple' value here
+
+            $query = $this->mongoat->update($this->schema->foreignClass());
+
+            $criteria = $update['value'];
+            if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
+            $query->where('_id', $criteria);
+
+            if ($this->schema->multiple()) {
+                if ($update['type'] == 'add') {
+                    $changes = array('$push' => array($this->schema->fieldName() => $this->model));
+                }
+                if ($update['type'] == 'remove') {
+                    $changes = array('$pull' => array($this->schema->fieldName() => $this->model));
+                }
+            }
+            else {
+                $value = $update['type'] == 'add' ? $this->model : null;
+                $changes = array('$set' => array($this->schema->fieldName() => $value));
+            }
+
+            $query->changes($changes)->all();
         }
 
+        $this->updates = array();
         return $this;
     }
 }

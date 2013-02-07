@@ -24,6 +24,7 @@ A straight forward Mongo ODM (ORM) for Symfony2
 - Add support for symfony validation
 - Add logging
 - Add query analyser
+- Support additional operators: $slice, $regex, $where, $elemMatch, $bit, $mod
 
 ## Planned interface:
 

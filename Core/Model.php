@@ -140,6 +140,9 @@ class Model
     // Saves a document
     public function save()
     {
+        // Adds a MongoId to new models
+        if ($this->unsaved() && !$this->data['_id'])  $this->data['_id'] = new \MongoId();
+
         $collection = $this->mongoat()->collection($this);
         $data = $this->schema()->filterCriteria($this->dehydrate());
 
