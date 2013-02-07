@@ -4,16 +4,12 @@ namespace WhiteOctober\MongoatBundle\Core;
 
 class Schema
 {
+	static $relationshipSchemaClass = 'WhiteOctober\MongoatBundle\Core\RelationshipSchema';
+
 	protected $mongoat;
 	protected $fields = array('_id' => array('type' => 'id'));
 	public $filters = array();
 	public $relationships = array();
-	public $relationshipTypes = array(
-		'hasOne' => 'WhiteOctober\MongoatBundle\Core\RelationshipTypes\HasOne',
-		'hasMany' => 'WhiteOctober\MongoatBundle\Core\RelationshipTypes\HasMany',
-		'belongsTo' => 'WhiteOctober\MongoatBundle\Core\RelationshipTypes\BelongsTo',
-		'belongsToMany' => 'WhiteOctober\MongoatBundle\Core\RelationshipTypes\BelongsToMany'
-	);
 
 	public function __construct($mongoat)
 	{
@@ -112,8 +108,8 @@ class Schema
 	public function relationships($relationships)
 	{
 		foreach ($relationships as $name => $options) {
-			$class = $this->mongoat->fullClass($this->relationshipTypes[$options['type']]);
-			$this->relationships[$name] = new $class($this->mongoat, $this, $name, $options);
+			$class = $this->mongoat->fullClass(static::$relationshipSchemaClass);
+			$this->relationships[$name] = new $class($this->mongoat, $name, $options, $this);
 		}
 	}
 

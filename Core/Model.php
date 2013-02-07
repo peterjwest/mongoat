@@ -7,6 +7,7 @@ class Model
 {
     static $queryClass = "WhiteOctober\MongoatBundle\Core\Query";
     static $schemaClass = "WhiteOctober\MongoatBundle\Core\Schema";
+    static $relationshipClass = "WhiteOctober\MongoatBundle\Core\Relationship";
     static $collectionNames = array();
     static $schemaCaches = array();
 
@@ -14,12 +15,10 @@ class Model
 	protected $mongoat;
 	protected $schema;
     protected $unsaved = true;
-    protected $relationshipUpdates = array();
-    protected $relationshipCache = array();
     protected $options = array('safe' => true);
+    protected $relationships = array();
 
-    // Placeholder function for schema definition
-    // Override this in child classes to define a schema
+    // Schema definition
     public function definition($schema)
     {
         return $schema;
@@ -40,7 +39,6 @@ class Model
             if ($this->schema === null) {
                 $class = get_class($this);
                 if (!isset(static::$schemaCaches[$class])) {
-
                     static::$schemaCaches[$class] = $this->definition(new static::$schemaClass($this->mongoat));
                 }
                 $this->schema = static::$schemaCaches[$class];
@@ -88,18 +86,14 @@ class Model
     }
 
     // Get a field by name
-    public function get($name, $forceReload = false)
+    public function get($name)
     {
         if ($this->schema()->hasField($name)) {
             return $this->schema()->filter('get', $name, $this->data[$name]);
         }
 
         if ($this->schema()->relationship($name)) {
-            // Updates the cache not yet cached, or if forced
-            if (!isset($this->relationshipCache[$name]) || $forceReload) {
-                $this->relationshipCache[$name] = $this->find($name);
-            }
-            return $this->relationshipCache[$name];
+            return $this->relationship($name)->get();
         }
 
         throw new \Exception("$name field does not exist");
@@ -113,16 +107,29 @@ class Model
             return $this;
         }
 
-        if ($relationship = $this->schema()->relationship($name)) {
-            $relationship->set($this, $value);
-            $this->relationshipCache[$name] = $value;
-            return $this;
+        if ($this->schema()->relationship($name)) {
+            return $this->relationship($name)->set($value);
         }
 
         throw new \Exception("$name field does not exist in ".get_class($this));
     }
 
-    // Returns whether the document is unsaved or not
+    // Gets a relationship
+    public function relationship($name)
+    {
+        if ($this->schema()->relationship($name)) {
+            // Creates a relationship object if it doesn't exist
+            if (!isset($this->relationships[$name])) {
+                $schema = $this->schema()->relationship($name);
+                $relationship = new static::$relationshipClass($this->mongoat, $this, $schema);
+                $this->relationships[$name] = $relationship;
+            }
+            return $this->relationships[$name];
+        }
+        throw new \Exception("$name relationship does not exist in ".get_class($this));
+    }
+
+    // Getter / setter for whether the model is not saved
     public function unsaved($unsaved = null)
     {
         if (func_num_args() == 0) return $this->unsaved;
@@ -145,43 +152,12 @@ class Model
             $response = $collection->update(array('_id' => $this->mongoId()), $data, $this->options);
         }
 
-        // Update all relationships which have been scheduled
-        foreach ($this->relationshipUpdates as $name => $relations) {
-            $this->schema()->relationship($name)->update($this, $relations);
+        // Updates relationships
+        foreach($this->relationships as $relationship) {
+            $relationship->save($data);
         }
-        $this->relationshipUpdates = array();
 
         return $response;
-    }
-
-    // Adds a value to a field or relationship
-    public function add($name, $value)
-    {
-        if ($this->schema()->hasField($name)) {
-            $this->data[$name] = $this->schema()->filter('set', $name, null);
-            return $this;
-        }
-
-        if ($this->schema()->relationship($name)) {
-            return $this->schema()->relationship($name)->add($this, $value);
-        }
-
-        throw new \Exception("$name field does not exist");
-    }
-
-    // Removes a value from a field or relationship
-    public function remove($name, $value)
-    {
-        if ($this->schema()->hasField($name)) {
-            $this->data[$name] = $this->schema()->filter('set', $name, null);
-            return $this;
-        }
-
-        if ($this->schema()->relationship($name)) {
-            return $this->schema()->relationship($name)->remove($this, $value);
-        }
-
-        throw new \Exception("$name field does not exist");
     }
 
     // Deletes a document
@@ -198,14 +174,6 @@ class Model
             $this->set($name, isset($options['default']) ? $options['default'] : null);
         }
         return $this;
-    }
-
-    // Creates a query for a relationship
-    public function find($name)
-    {
-        if ($this->schema()->relationship($name)) {
-            return $this->schema()->relationship($name)->get($this);
-        }
     }
 
     // Dehydrates data to be inserted into the database
@@ -227,11 +195,5 @@ class Model
             $this->data[$name] = $this->schema()->filter('hydrate', $name, $value);
         }
         return $this;
-    }
-
-    // Schedules a relationship to be updated on save
-    public function scheduleUpdate($name, $relations)
-    {
-        $this->relationshipUpdates[$name] = $relations;
     }
 }
