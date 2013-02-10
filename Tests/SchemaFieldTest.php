@@ -6,7 +6,7 @@ use WhiteOctober\MongoatBundle\Core\Schema;
 
 use PHPUnit_Framework_TestCase;
 
-class SchemaTest extends PHPUnit_Framework_TestCase
+class SchemaFieldTest extends PHPUnit_Framework_TestCase
 {
     public function __construct()
     {
@@ -18,7 +18,7 @@ class SchemaTest extends PHPUnit_Framework_TestCase
         $this->schema = new Schema($this->mongoat);
     }
 
-    public function testFieldsAreAdded()
+    public function testFieldsExist()
     {
         $this->schema->fields(array(
             'name' => array('type' => 'string'),
@@ -40,15 +40,30 @@ class SchemaTest extends PHPUnit_Framework_TestCase
         $this->assertFalse($this->schema->hasField('strawberry'));
     }
 
-    public function testInvalidField()
+    public function testNonExistantField()
     {
-        $this->setExpectedException('Exception');
+        $this->schema->fields(array('name' => array('type' => 'string')));
 
-        $this->schema->fields(array(
-            'name' => array('type' => 'string'),
-        ));
+        $this->setExpectedException('Exception', "Field 'fish' not found");
+        $this->schema->filter('set', 'fish', 'blah');
+    }
 
-        $this->schema->filter('set', 'fish', 'blah blah blah');
+    public function testNonExistantFilterAction()
+    {
+        $this->schema->fields(array('name' => array('type' => 'string')));
+
+        $this->setExpectedException('Exception', "Filter 'create' not found");
+        $this->schema->filter('create', 'name', '123');
+    }
+
+    public function testUnspecifiedFilter()
+    {
+        $this->schema->fields(array('name' => array('type' => 'random')));
+
+        $date = new \DateTime();
+        $this->assertEquals('123', $this->schema->filter('get', 'name', '123'));
+        $this->assertEquals(123.456, $this->schema->filter('get', 'name', 123.456));
+        $this->assertEquals($date, $this->schema->filter('get', 'name', $date));
     }
 
     public function testSetIdField()
@@ -121,5 +136,36 @@ class SchemaTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals($this->schema->filter('set', 'rates', array(1, 2, '3')), array(1, 2, 3));
         $this->assertEquals($this->schema->filter('set', 'rates', array('a' => 1, 'b' => 2)), array(1, 2));
+    }
+
+    public function testGetIdFieldFilter()
+    {
+        $this->schema->fields(array('catId' => array('type' => 'id')));
+        $this->schema->fields(array('ratIds' => array('type' => array('array', 'id'))));
+
+        $id = '51143ceb46bd74f3ed000002';
+        $id2 = '51143ceb46bd74f3ed000002';
+
+        $this->assertEquals(
+            $id,
+            $this->schema->filter('get', 'catId', new \MongoId($id))
+        );
+
+        $this->assertEquals(
+            array($id, $id2),
+            $this->schema->filter('get', 'ratIds', array(new \MongoId($id), new \MongoId($id2)))
+        );
+    }
+
+    public function testDateHydrationFilter()
+    {
+        $this->schema->fields(array('createdAt' => array('type' => 'date')));
+        $this->schema->fields(array('loginDates' => array('type' => array('array', 'date'))));
+
+        $date = new \DateTime("2010-01-30 00:00:00");
+        $mongoDate = new \MongoDate(strtotime("2010-01-30 00:00:00"));
+
+        $this->assertEquals($mongoDate, $this->schema->filter('dehydrate', 'createdAt', $date));
+        $this->assertEquals($date, $this->schema->filter('hydrate', 'createdAt', $mongoDate));
     }
 }

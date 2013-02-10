@@ -76,11 +76,6 @@ class Query
 
 		if ($this->type == 'update') {
 
-			var_dump(array(
-				'criteria' => $this->schema()->filterCriteria($this->criteria),
-				'changes' => $this->schema()->filterCriteria($this->changes)
-			));
-
 			$this->options['multiple'] = true;
 			return $this->collection()->update(
 				$this->schema()->filterCriteria($this->criteria),

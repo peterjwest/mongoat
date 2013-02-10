@@ -71,7 +71,6 @@ class Schema
 
 			// These functions filter data saved to the database
 			'dehydrate' => array(
-				'id' => function($id) { return $id; },
 				'date' => function($value) {
 					return $value instanceof \DateTime ? new \MongoDate($value->getTimestamp()) : null;
 				}
@@ -79,7 +78,6 @@ class Schema
 
 			// These function filter data queried from the database
 			'hydrate' => array(
-				'id' => function($id) { return $id; },
 				'date' => function($value) {
 					if ($value === null) return null;
 					$date = new \DateTime();
@@ -92,7 +90,9 @@ class Schema
 		// Meta filter for array fields
 		foreach($this->filters as $action => $filters) {
 			$this->filters[$action]['array'] = function($type, $value) use ($that, $action) {
+
 				$array = is_array($value) ? $value : array($value);
+				if (!isset($that->filters[$action][$type])) return $array;
 				return array_map($that->filters[$action][$type], array_values($array));
 			};
 		}
@@ -131,8 +131,7 @@ class Schema
 
 	public function hasField($field)
 	{
-		if (isset($this->fields[$field])) return true;
-		return false;
+		return isset($this->fields[$field]);
 	}
 
 	// Validates a field against its schema, returns an array of errors
@@ -157,6 +156,8 @@ class Schema
 	// Filters a field value through a certain action
 	public function filter($action, $field, $value)
 	{
+		if (!isset($this->fields[$field])) throw new \Exception("Field '$field' not found");
+
 		$type = $this->fieldType($field);
 		$subtype = $this->fieldSubtype($field);
 
@@ -164,9 +165,10 @@ class Schema
 	}
 
 	// Filters a value by its type through a certain action
-	public function filterType($action, $type, $subtype, $value)
+	protected function filterType($action, $type, $subtype, $value)
 	{
-		// Finds appropriate filter
+		// Finds appropriate filter or throws an error
+		if (!isset($this->filters[$action])) throw new \Exception("Filter '$action' not found");
 		$filters = $this->filters[$action];
 
 		// If there's no filter, return the value unaltered;
@@ -177,19 +179,25 @@ class Schema
 	}
 
 	// Deep filter of data passed to Mongo
-    public function filterCriteria($data, $field = null, $parent = null)
+    public function filterCriteria($data, $parentField = null, $parent = null)
     {
         $filtered = array();
         foreach ($data as $key => $value) {
-            if (!preg_match('/^\$[a-z]+$/i', $key) && !is_numeric($key)) $field = $key;
+        	$field = $parentField;
 
-            if (is_array($value) && ($this->fieldType($field) != 'array' || !$this->flatArray($value))) {
+        	// Sets the scope to the earliest field found
+            if (!$this->isOperator($key) && !$field) $field = $key;
+
+            // Recursively filters criteria if a field is not yet specified,
+            // or if the value array contains more operators
+            if (is_array($value) && (!$field || !$this->valueArray($value))) {
             	$filtered[$key] = $this->filterCriteria($value, $field, $key);
             }
 
-            else if ($field !== null) {
+            // Otherwise filters the field
+            else if ($field) {
 
-            	// Gets default types for the field
+            	// Gets standard types for the field
             	$type = $this->fieldType($field);
 				$subtype = $this->fieldSubtype($field);
 
@@ -200,7 +208,7 @@ class Schema
 				}
 
 				// These operators make the field within take an array of values
-				if (isset(static::$operatorTypes['arrayElement'][$key])) {
+				if (!$subtype && isset(static::$operatorTypes['arrayElement'][$key])) {
 					$subtype = $type;
 					$type = 'array';
 				}
@@ -250,10 +258,19 @@ class Schema
 		return isset($this->relationships[$name]) ? $this->relationships[$name] : null;
 	}
 
-	// Determines if an array is flat i.e. contains no arrays
-    protected function flatArray($array)
+	// Determines if an array contains no further arrays or operators
+    protected function valueArray($array)
     {
-    	foreach($array as $item) if (is_array($item)) return false;
+    	foreach($array as $key => $item) {
+    		if (is_array($item)) return false;
+    		if ($this->isOperator($key)) return false;
+    	}
     	return true;
+    }
+
+    // Determines if a key is a mongo operator
+    protected function isOperator($key)
+    {
+    	return preg_match('/^\$[a-z]+$/i', $key);
     }
 }
