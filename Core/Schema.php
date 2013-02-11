@@ -5,31 +5,23 @@ namespace WhiteOctober\MongoatBundle\Core;
 class Schema
 {
 	static $relationshipSchemaClass = 'WhiteOctober\MongoatBundle\Core\RelationshipSchema';
-	static $operatorTypes = array(
-		'polymorphicArray' => array('$push' => true, '$pull' => true, '$addToSet' => true),
-		'arrayElement' => array('$all' => true, '$in' => true, '$nin' => true),
-		'fieldName' => array('$rename' => true),
-		'integer' => array('$size' => true, '$type' => true),
-		'boolean' => array('$exists' => true),
-		'index' => array('$pop' => true),
-		'string' => array('$regex' => true, '$options' => true)
-	);
 
 	protected $mongoat;
 	protected $fields = array('_id' => array('type' => 'id'));
+	protected $operators = array();
+	protected $relationships = array();
 	public $filters = array();
-	public $relationships = array();
 
 	public function __construct($mongoat)
 	{
 		$this->mongoat = $mongoat;
 		$this->filters();
+		$this->operators();
 	}
 
 	// Creates filters for fields
 	protected function filters()
 	{
-		$that = $this;
 		$this->filters = array(
 			// These functions filter data set on the model
 			'set' => array(
@@ -88,18 +80,66 @@ class Schema
 		);
 
 		// Meta filter for array fields
+		$that = $this;
 		foreach($this->filters as $action => $filters) {
 			$this->filters[$action]['array'] = function($type, $value) use ($that, $action) {
 
+				// Null values are converted to an empty array
+				if ($value === null) return array();
+
+				// Wraps non-array values in an array
 				$array = is_array($value) ? $value : array($value);
+
+				// Runs each item through a filter if one exists
 				if (!isset($that->filters[$action][$type])) return $array;
 				return array_map($that->filters[$action][$type], array_values($array));
 			};
 		}
 	}
 
-	// Getter / setter for fields
-	// Gets all fields or adds one or more fields
+	// Creates special rules for types in mongo operators
+	protected function operators()
+	{
+		$this->operators = array(
+			'parent' => array(
+				'arrayOfItems' => array(
+					'operators' => array('$push' => true, '$pull' => true, '$addToSet' => true),
+					'filter' => function($type, $subtype) { return array($subtype, null); }
+				),
+				'index' => array(
+					'operators' => array('$pop' => true),
+					'filter' => function($type, $subtype) { return array('integer', null); }
+				),
+				'fieldName' => array(
+					'operators' => array('$rename' => true),
+					'filter' => function($type, $subtype) { return array('string', null); }
+				)
+			),
+
+			'current' => array(
+				'arrayElement' => array(
+					'operators' => array('$all' => true, '$in' => true, '$nin' => true),
+					'filter' => function($type, $subtype) {
+						return $subtype ? array($type, $subtype) : array('array', $type);
+					}
+				),
+				'integer' => array(
+					'operators' => array('$size' => true, '$type' => true),
+					'filter' => function($type, $subtype) { return array('integer', null); }
+				),
+				'boolean' => array(
+					'operators' => array('$exists' => true),
+					'filter' => function($type, $subtype) { return array('boolean', null); }
+				),
+				'string' => array(
+					'operators' => array('$regex' => true, '$options' => true),
+					'filter' => function($type, $subtype) { return array('string', null); }
+				)
+			)
+		);
+	}
+
+	// Gets all fields or adds fields
 	public function fields($fields = null)
 	{
 		if (func_num_args() == 0) {
@@ -112,32 +152,45 @@ class Schema
 		return $this;
 	}
 
-	// Clears all fields and relationships
-	public function clear()
+	// Gets a field by name
+	public function field($name)
 	{
-		$this->fields = array('_id' => array('type' => 'id'));
-		$this->relationships = array();
-		return $this;
+		return isset($this->fields[$name]) ? $this->fields[$name] : null;
 	}
 
-	// Adds one or more relationship definitions
-	public function relationships($relationships)
+	// Gets all relationships or adds relationships
+	public function relationships($relationships = null)
 	{
+		if (func_num_args() == 0) {
+			return $this->relationships;
+		}
 		foreach ($relationships as $name => $options) {
 			$class = $this->mongoat->fullClass(static::$relationshipSchemaClass);
 			$this->relationships[$name] = new $class($this->mongoat, $name, $options, $this);
 		}
 	}
 
-	public function hasField($field)
+	// Gets a relationship by name
+	public function relationship($name)
 	{
-		return isset($this->fields[$field]);
+		return isset($this->relationships[$name]) ? $this->relationships[$name] : null;
 	}
 
-	// Validates a field against its schema, returns an array of errors
-	public function validateField($field, $value)
+	// Gets the default value for a field
+	public function defaultValue($name)
 	{
-		// TODO
+		if (isset($this->fields[$name]) && isset($this->fields[$name]['default'])) {
+			$setValue = $this->filter('set', $name, $this->fields[$name]['default']);
+			return $this->filter('get', $name, $setValue);
+		}
+	}
+
+	// Clears all fields and relationships
+	public function clear()
+	{
+		$this->fields = array('_id' => array('type' => 'id'));
+		$this->relationships = array();
+		return $this;
 	}
 
 	// Gets the data types for a field
@@ -150,7 +203,7 @@ class Schema
 	protected function fieldSubtype($field)
 	{
 		$type = $this->fields[$field]['type'];
-		return is_array($type) ? $type[1] : null;
+		return is_array($type) && isset($type[1]) ? $type[1] : null;
 	}
 
 	// Filters a field value through a certain action
@@ -182,16 +235,16 @@ class Schema
     public function filterCriteria($data, $parentField = null, $parent = null)
     {
         $filtered = array();
-        foreach ($data as $key => $value) {
+        foreach ($data as $current => $value) {
         	$field = $parentField;
 
         	// Sets the scope to the earliest field found
-            if (!$this->isOperator($key) && !$field) $field = $key;
+            if (!$this->isOperator($current) && !$field) $field = $current;
 
             // Recursively filters criteria if a field is not yet specified,
             // or if the value array contains more operators
             if (is_array($value) && (!$field || !$this->valueArray($value))) {
-            	$filtered[$key] = $this->filterCriteria($value, $field, $key);
+            	$filtered[$current] = $this->filterCriteria($value, $field, $current);
             }
 
             // Otherwise filters the field
@@ -201,62 +254,29 @@ class Schema
             	$type = $this->fieldType($field);
 				$subtype = $this->fieldSubtype($field);
 
-				// These operators make the field within take a single value
-				if (isset(static::$operatorTypes['polymorphicArray'][$parent])) {
-					$type = $subtype;
-					$subtype = null;
+				// Applies custom data types for specific parent operators
+				foreach($this->operators['parent'] as $group) {
+					if (isset($group['operators'][$parent])) {
+						list($type, $subtype) = $group['filter']($type, $subtype);
+					}
 				}
 
-				// These operators make the field within take an array of values
-				if (!$subtype && isset(static::$operatorTypes['arrayElement'][$key])) {
-					$subtype = $type;
-					$type = 'array';
-				}
-
-				// These operators make the field within take an integer value
-				if (isset(static::$operatorTypes['index'][$parent])) {
-					$type = 'integer';
-					$subtype = null;
-				}
-
-				// These operators make the field within take a string value
-				if (isset(static::$operatorTypes['fieldName'][$parent])) {
-					$type = 'string';
-					$subtype = null;
-				}
-
-				// These operators take integer values
-				if (isset(static::$operatorTypes['integer'][$key])) {
-					$type = 'integer';
-					$subtype = null;
-				}
-
-				// These operators take boolean values
-				if (isset(static::$operatorTypes['boolean'][$key])) {
-					$type = 'boolean';
-					$subtype = null;
-				}
-
-				// These operators take string values
-				if (isset(static::$operatorTypes['string'][$key])) {
-					$type = 'string';
-					$subtype = null;
+				// Applies custom data types for specific operators
+				foreach($this->operators['current'] as $group) {
+					if (isset($group['operators'][$current])) {
+						list($type, $subtype) = $group['filter']($type, $subtype);
+					}
 				}
 
 				// Runs filters on the fields
 				$value = $this->filterType('set', $type, $subtype, $value);
 				$value = $this->filterType('dehydrate', $type, $subtype, $value);
 
-                $filtered[$key] = $value;
+                $filtered[$current] = $value;
             }
         }
         return $filtered;
     }
-
-	// Gets a relationship
-	public function relationship($name) {
-		return isset($this->relationships[$name]) ? $this->relationships[$name] : null;
-	}
 
 	// Determines if an array contains no further arrays or operators
     protected function valueArray($array)

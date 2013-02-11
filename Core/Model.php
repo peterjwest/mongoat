@@ -18,7 +18,7 @@ class Model
     protected $options = array('safe' => true);
     protected $relationships = array();
 
-    // Schema definition
+    // Schema definition, override to specify schema for a model
     public function definition($schema)
     {
         return $schema;
@@ -65,7 +65,7 @@ class Model
     public function __call($method, $arguments)
     {
         // Rails style getter/setters using number of arguments
-        if ($this->schema()->hasField($method) || $this->schema()->relationship($method)) {
+        if ($this->schema()->field($method) || $this->schema()->relationship($method)) {
             if (count($arguments) == 0) {
                 return $this->get($method);
             }
@@ -82,27 +82,28 @@ class Model
         }
 
         $class = get_class($this);
-        throw new \BadMethodCallException("Undefined method $method() in $class");
+        throw new \Exception("Field '$method' does not exist in ".get_class($this));
     }
 
     // Get a field by name
     public function get($name)
     {
-        if ($this->schema()->hasField($name)) {
-            return $this->schema()->filter('get', $name, $this->data[$name]);
+        if ($this->schema()->field($name)) {
+            $value = isset($this->data[$name]) ? $this->data[$name] : $this->schema()->defaultValue($name);
+            return $this->schema()->filter('get', $name, $value);
         }
 
         if ($this->schema()->relationship($name)) {
             return $this->relationship($name)->get();
         }
 
-        throw new \Exception("$name field does not exist");
+        throw new \Exception("Field '$name' does not exist in ".get_class($this));
     }
 
     // Set a field by name
     public function set($name, $value)
     {
-        if ($this->schema()->hasField($name)) {
+        if ($this->schema()->field($name)) {
             $this->data[$name] = $this->schema()->filter('set', $name, $value);
             return $this;
         }
@@ -111,7 +112,7 @@ class Model
             return $this->relationship($name)->set($value);
         }
 
-        throw new \Exception("$name field does not exist in ".get_class($this));
+        throw new \Exception("Field '$name' does not exist in ".get_class($this));
     }
 
     // Gets a relationship
@@ -141,7 +142,7 @@ class Model
     public function save()
     {
         // Adds a MongoId to new models
-        if ($this->unsaved() && !$this->data['_id'])  $this->data['_id'] = new \MongoId();
+        if ($this->unsaved() && !isset($this->data['_id']))  $this->data['_id'] = new \MongoId();
 
         $collection = $this->mongoat()->collection($this);
         $data = $this->schema()->filterCriteria($this->dehydrate());
@@ -170,21 +171,12 @@ class Model
         return $collection->remove(array('_id' => $this->mongoId()), $data, $this->options);
     }
 
-    // Sets default fields for the model
-    public function defaults()
-    {
-        foreach ($this->schema()->fields() as $name => $options) {
-            $this->set($name, isset($options['default']) ? $options['default'] : null);
-        }
-        return $this;
-    }
-
     // Dehydrates data to be inserted into the database
     public function dehydrate()
     {
         $data = array();
         foreach($this->schema()->fields() as $name => $options) {
-            $value = isset($this->data[$name]) ? $this->data[$name] : (isset($options['default']) ? $options['default'] : null);
+            $value = isset($this->data[$name]) ? $this->data[$name] : $this->schema()->defaultValue($name);
             $data[$name] = $this->schema()->filter('dehydrate', $name, $value);
         }
         return $data;
@@ -194,7 +186,7 @@ class Model
     public function hydrate($data = null)
     {
         foreach($this->schema()->fields() as $name => $options) {
-            $value = isset($data[$name]) ? $data[$name] : (isset($options['default']) ? $options['default'] : null);
+            $value = isset($data[$name]) ? $data[$name] : $this->schema()->defaultValue($name);
             $this->data[$name] = $this->schema()->filter('hydrate', $name, $value);
         }
         return $this;

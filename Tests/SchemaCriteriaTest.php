@@ -105,7 +105,15 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testInArrayField()
     {
+        $this->schema->fields(array('someId' => array('type' => array('id'))));
         $this->schema->fields(array('count' => array('type' => array('array', 'integer'))));
+
+        $id = new \MongoId();
+
+        $this->assertEquals(
+            array('someId' => array('$in' => array($id))),
+            $this->schema->filterCriteria(array('someId' => array('$in' => array($id))))
+        );
 
         $this->assertEquals(
             array('count' => array('$in' => array(1, 2, 3))),
@@ -115,6 +123,11 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(
             array('count' => array('$in' => array())),
             $this->schema->filterCriteria(array('count' => array('$in' => array())))
+        );
+
+        $this->assertEquals(
+            array('count' => array('$in' => array(1))),
+            $this->schema->filterCriteria(array('count' => array('$in' => 1)))
         );
     }
 

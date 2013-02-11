@@ -49,7 +49,7 @@ class Mongoat
 	{
 		$class = $this->fullClass($model);
 		$instance = new $class();
-		return $instance->mongoat($this)->defaults();
+		return $instance->mongoat($this);
 	}
 
 	// Creates a find query for a model
