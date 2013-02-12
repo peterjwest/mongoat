@@ -3,32 +3,96 @@
 A straight forward Mongo ODM (ORM) for Symfony2
 
 
-## Planned features
+## Features
 
+- Simple, concise, well tested code
+- Complex relationships with simple caching and no hassle
+- Populate relationships with join-like queries
+- Inherit any part of Mongoat in your project
 - Define your schema in code, in the model
-- Consequently, no code generation
-- Populate relationships to optimise queries, even nested relationships
-- Generate migration files automatically to migrate code easily
+- No code generation
+
+### Planned:
+
+- Generate migration files automatically to migrate data easily
 - Migrate your database forwards or backwards
+- More Symfony integration
 
-## TODO
 
-- Build field update/insert generator
-- Finish model getters/setters
-- Hook into Mongo connection
-- Get prototype working
-- Switch to TDD, test existing code
-- Add relationships
-- Add population feature
-- Build array walker to filter query criteria
-- Add support for symfony validation
-- Add logging
-- Add query analyser
-- Support additional operators: $slice, $regex, $where, $elemMatch, $bit, $mod
+## Getting started
 
-## Planned interface:
+Once you have Mongoat loaded as a dependency, you need to define its configuration:
 
-### Sample class:
+### Symfony config
+
+	mongoat:
+	    model_namepsace: Acme\YourBundle\Model
+	    connections:
+	        local:
+	            server:   mongodb://localhost:27017
+	            database: your_database
+	        external:
+	        	class:    Acme\YourBundle\Connection
+	        	server:   mongodb://somewhere_else:27017
+	            database: your_other_database
+
+### Standalone setup
+
+	$mongoat = new Mongoat();
+	$mongoat->modelNamespace('Acme\YourBundle\Model');
+
+	$connection = new Connection('mongodb://localhost:27017', 'your_database');
+	$mongoat->addConnection('local', $connection);
+
+
+The model namespace setting allows you to use relative paths to access models through Mongoat e.g. `$mongoat->find('User');` instead of `$mongoat->find('Acme\YourBundle\Model\User');`.
+You can still use the full path to access models in other namespaces.
+
+You can define one or more connections, in symfony you can define a custom class to be used for the connection.
+The first connection defined is the default, switch connections using `$mongoat->connection('connection_name');`.
+
+
+## Simple example
+
+Define a model by extending Mongoat's Model class.
+
+	namespace Acme\YourBundle\Model;
+	use WhiteOctober\MongoatBundle\Core\Model;
+
+	class User extends Model
+	{
+		public function definition($schema)
+		{
+			$schema->fields(array(
+				'name' => array('type' => 'string'),
+				'score' => array('type' => 'integer')
+			));
+
+			$schema->relationships(
+				'cat' => array('type' => 'hasOne', 'class' => 'Cat'),
+				'team' => array('type' => 'belongsTo', 'class' => 'Team'),
+			));
+
+			return $schema;
+		}
+	}
+
+Create and save a new user:
+
+	$user = $mongoat->create('User');
+	$user->name('John');
+	$user->score(33);
+	$user->save();
+
+Find that user again:
+
+	$query = $mongoat->find('User');
+	$user = $query->where('name', 'John')->one();
+
+
+## Interface
+
+### Sample model class
 
 	// Classes extend a Model class in the bundle, which extends a base Model class in Mongoat
 	class User extends Model
@@ -128,3 +192,29 @@ You can get the relationships for an array of models after they've been loaded:
 
 	// This loads the relationships into each user and also returns the queried objects
 	$cats = $mongoat->populate($users, 'cat');
+
+
+## TODO
+
+- Build field update/insert generator
+- Complete population feature
+- Add support for symfony validation
+- Add logging
+- Add query analyser
+- Support additional operators: $slice, $regex, $where, $elemMatch, $bit, $mod
+- Tests:
+	- Schema relationships
+	- Schema default values
+	- Schema clearing
+	- Model id(), mongoId() method
+	- Model relationships
+	- Model creating/saving, unsaved() method
+	- Model deleting
+	- Model hydrate/dehydrate
+	- Query where() method
+	- Query fields() method
+	- Query limit(), skip(), page()
+	- Query populating
+	- Query find: one, all
+	- Query update: one, all
+	- Query delete: one, all
