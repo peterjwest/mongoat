@@ -18,14 +18,14 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
     {
         $this->schema = new Schema($this->mongoat);
         $this->schema->fields(array(
-            'name' => array('type' => 'string', 'default' => 'blah'),
+            'name' => array('type' => 'string', 'default' => 'Your name'),
             'anything' => array('type' => 'random'),
             'count' => array('type' => 'integer', 'default' => 3),
             'createdAt' => array('type' => 'date'),
-            'enabled' => array('type' => 'boolean'),
+            'enabled' => array('type' => 'boolean', 'default' => true),
             'value' => array('type' => 'float'),
             'catId' => array('type' => 'id'),
-            'catNames' => array('type' => array('array', 'string')),
+            'catNames' => array('type' => array('array', 'string'), 'default' => array('Fluffy')),
             'prices' => array('type' => array('array', 'integer')),
             'loginDates' => array('type' => array('array', 'date')),
             'dogIds' => array('type' => array('array', 'id')),
@@ -37,11 +37,13 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
 
     public function testGettingDefaultValues()
     {
-        $this->assertSame('blah', $this->model->get('name'));
+        $this->assertSame('Your name', $this->model->get('name'));
         $this->assertSame(null, $this->model->get('anything'));
         $this->assertSame(3, $this->model->get('count'));
+        $this->assertSame(true, $this->model->get('enabled'));
         $this->assertSame(null, $this->model->get('createdAt'));
-        $this->assertSame(array(), $this->model->get('catNames'));
+        $this->assertSame(array(), $this->model->get('prices'));
+        $this->assertSame(array('Fluffy'), $this->model->get('catNames'));
     }
 
     public function testSettingGettingValuesByString()

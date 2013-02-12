@@ -17,17 +17,17 @@ class SchemaFieldTest extends PHPUnit_Framework_TestCase
     {
         $this->schema = new Schema($this->mongoat);
         $this->schema->fields(array(
-            'name' => array('type' => 'string'),
+            'name' => array('type' => 'string', 'default' => 'Your name'),
             'anything' => array('type' => 'random'),
-            'count' => array('type' => 'integer'),
+            'count' => array('type' => 'integer', 'default' => 3),
             'createdAt' => array('type' => 'date'),
-            'enabled' => array('type' => 'boolean'),
+            'enabled' => array('type' => 'boolean', 'default' => true),
             'value' => array('type' => 'float'),
             'catId' => array('type' => 'id'),
-            'catNames' => array('type' => array('array', 'string')),
+            'catNames' => array('type' => array('array', 'string'), 'default' => array('Fluffy')),
             'prices' => array('type' => array('array', 'integer')),
             'loginDates' => array('type' => array('array', 'date')),
-            'dogIds' => array('type' => array('array', 'id')),
+            'dogIds' => array('type' => array('array', 'id'))
         ));
     }
 
@@ -36,8 +36,8 @@ class SchemaFieldTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(count($this->schema->fields()), 12);
 
         $this->assertSame(array('type' => 'id'), $this->schema->field('_id'));
-        $this->assertSame(array('type' => 'string'), $this->schema->field('name'));
-        $this->assertSame(array('type' => array('array', 'string')), $this->schema->field('catNames'));
+        $this->assertSame(array('type' => 'string', 'default' => 'Your name'), $this->schema->field('name'));
+        $this->assertSame(array('type' => array('array', 'string'), 'default' => array('Fluffy')), $this->schema->field('catNames'));
 
         $this->assertNull($this->schema->field('apple'));
         $this->assertNull($this->schema->field('banana'));
@@ -146,5 +146,28 @@ class SchemaFieldTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals($mongoDate, $this->schema->filter('dehydrate', 'createdAt', $date));
         $this->assertEquals($date, $this->schema->filter('hydrate', 'createdAt', $mongoDate));
+    }
+
+    public function testDefaultValues()
+    {
+        $this->assertSame('Your name', $this->schema->defaultValue('name'));
+        $this->assertSame(null, $this->schema->defaultValue('anything'));
+        $this->assertSame(3, $this->schema->defaultValue('count'));
+        $this->assertSame(true, $this->schema->defaultValue('enabled'));
+        $this->assertSame(null, $this->schema->defaultValue('createdAt'));
+        $this->assertSame(array(), $this->schema->defaultValue('prices'));
+        $this->assertSame(array('Fluffy'), $this->schema->defaultValue('catNames'));
+    }
+
+    public function testClearSchema()
+    {
+        $this->schema->clear();
+
+        $this->assertEquals(count($this->schema->fields()), 1);
+
+        $this->assertSame(array('type' => 'id'), $this->schema->field('_id'));
+        $this->assertNull($this->schema->field('name'));
+        $this->assertNull($this->schema->field('anything'));
+        $this->assertNull($this->schema->field('prices'));
     }
 }

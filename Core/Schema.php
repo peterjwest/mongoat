@@ -179,10 +179,11 @@ class Schema
 	// Gets the default value for a field
 	public function defaultValue($name)
 	{
+		$value = null;
 		if (isset($this->fields[$name]) && isset($this->fields[$name]['default'])) {
-			$setValue = $this->filter('set', $name, $this->fields[$name]['default']);
-			return $this->filter('get', $name, $setValue);
+			$value = $this->fields[$name]['default'];
 		}
+		return $this->filter('set', $name, $value);
 	}
 
 	// Clears all fields and relationships

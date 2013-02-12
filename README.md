@@ -204,8 +204,6 @@ You can get the relationships for an array of models after they've been loaded:
 - Support additional operators: $slice, $regex, $where, $elemMatch, $bit, $mod
 - Tests:
 	- Schema relationships
-	- Schema default values
-	- Schema clearing
 	- Model id(), mongoId() method
 	- Model relationships
 	- Model creating/saving, unsaved() method
