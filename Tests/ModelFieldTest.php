@@ -68,22 +68,6 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
         $this->model->get('fake');
     }
 
-    public function testGetNonExistantFieldSymfonyStyle()
-    {
-        $this->setExpectedException('Exception', "Field 'fake' does not exist in WhiteOctober\MongoatBundle\Core\Model");
-
-        $this->model->getFake();
-    }
-
-    public function testGetNonExistantFieldRubyStyle()
-    {
-        $this->setExpectedException('Exception',
-            "Field 'fake' does not exist in WhiteOctober\MongoatBundle\Core\Model"
-        );
-
-        $this->model->fake();
-    }
-
     public function testSetNonExistantField()
     {
         $this->setExpectedException('Exception',
@@ -93,6 +77,13 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
         $this->model->set('fake', 'something');
     }
 
+    public function testGetNonExistantFieldSymfonyStyle()
+    {
+        $this->setExpectedException('Exception', "Field 'fake' does not exist in WhiteOctober\MongoatBundle\Core\Model");
+
+        $this->model->getFake();
+    }
+
     public function testSetNonExistantFieldSymfonyStyle()
     {
         $this->setExpectedException('Exception',
@@ -100,6 +91,15 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
         );
 
         $this->model->setFake('something');
+    }
+
+    public function testGetNonExistantFieldRubyStyle()
+    {
+        $this->setExpectedException('Exception',
+            "Field 'fake' does not exist in WhiteOctober\MongoatBundle\Core\Model"
+        );
+
+        $this->model->fake();
     }
 
     public function testSetNonExistantFieldRubyStyle()
