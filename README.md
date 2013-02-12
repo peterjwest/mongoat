@@ -203,16 +203,26 @@ You can get the relationships for an array of models after they've been loaded:
 - Add query analyser
 - Support additional operators: $slice, $regex, $where, $elemMatch, $bit, $mod
 - Tests:
-	- Schema relationships
-	- Model id(), mongoId() method
-	- Model relationships
-	- Model creating/saving, unsaved() method
-	- Model deleting
-	- Model hydrate/dehydrate
-	- Query where() method
-	- Query fields() method
-	- Query limit(), skip(), page()
-	- Query populating
-	- Query find: one, all
-	- Query update: one, all
-	- Query delete: one, all
+	- Schema
+		- Relationships
+	- Model
+		- Relationships
+		- Creating/saving, unsaved() method
+		- Deleting
+		- Hydrate/dehydrate
+	- Mongoat
+		- Test model namespaces / full class method
+		- Test connections
+		- Making find query
+		- Making update query
+		- Making delete query
+		- Unit of work
+		- Populating
+	- Query
+		- where() method
+		- fields() method
+		- limit(), skip(), page()
+		- Populating
+		- Find: one, all
+		- Update: one, all
+		- Delete: one, all
