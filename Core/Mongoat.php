@@ -88,7 +88,7 @@ class Mongoat
 		$documents = is_array($documents) ? $documents : array($documents);
 
         foreach ($documents as $document) {
-            $this->persisting[$this->getObjectId($document)] = $document;
+            $this->persisting[spl_object_hash($document)] = $document;
         }
 	}
 
@@ -98,7 +98,7 @@ class Mongoat
 		$documents = is_array($documents) ? $documents : array($documents);
 
         foreach ($documents as $document) {
-            $this->removing[$this->getObjectId($document)] = $document;
+            $this->removing[spl_object_hash($document)] = $document;
         }
 	}
 
@@ -111,25 +111,19 @@ class Mongoat
         $this->removing = array();
 	}
 
-    // Gets a unique ID for each object
-    protected function getObjectId($object)
+    // Gets the full class by prepending the default model namespace
+    public function fullClass($class)
     {
-        return spl_object_hash($object);
+        return class_exists($class) ? $class : $this->modelNamespace.'\\'.$class;
     }
 
-	// Getter / setter for the Mongo collection name
-    public function collectionName($class)
+    // Getter for the Mongo collection name
+    protected function collectionName($class)
     {
         if (!isset($class::$collectionNames[$class])) {
             $class::$collectionNames[$class] = $this->generateCollectionName($class);
         }
         return $class::$collectionNames[$class];
-    }
-
-    // Gets the full class by prepending the default model namespace
-    public function fullClass($class)
-    {
-        return class_exists($class) ? $class : $this->modelNamespace.'\\'.$class;
     }
 
     // Generates a collection name based on the model class
