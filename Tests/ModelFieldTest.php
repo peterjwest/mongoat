@@ -46,6 +46,28 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
         $this->assertSame(array('Fluffy'), $this->model->get('catNames'));
     }
 
+    public function testSettingGettingIdFields()
+    {
+        $id = new \MongoId();
+        $this->model->set('_id', $id);
+
+        $this->assertSame((string) $id, $this->model->get('_id'));
+        $this->assertSame((string) $id, $this->model->get('id'));
+        $this->assertSame((string) $id, $this->model->id());
+        $this->assertSame((string) $id, $this->model->getId());
+
+        $id2 = new \MongoId();
+
+        $this->model->set('id', $id2);
+        $this->assertSame((string) $id2, $this->model->get('_id'));
+
+        $this->model->id($id);
+        $this->assertSame((string) $id, $this->model->get('_id'));
+
+        $this->model->setId($id2);
+        $this->assertSame((string) $id2, $this->model->get('_id'));
+    }
+
     public function testSettingGettingValuesByString()
     {
         $date = new \DateTime();

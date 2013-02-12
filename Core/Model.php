@@ -49,12 +49,6 @@ class Model
         return $this;
     }
 
-    // Gets the ID as a string for the document
-    public function id()
-    {
-        return $this->get('_id');
-    }
-
     // Gets the mongo ID for the document
     public function mongoId()
     {
@@ -65,6 +59,7 @@ class Model
     public function __call($method, $arguments)
     {
         // Rails style getter/setters using number of arguments
+        if ($method === 'id') $method = '_id';
         if ($this->schema()->field($method) || $this->schema()->relationship($method)) {
             if (count($arguments) == 0) {
                 return $this->get($method);
@@ -73,6 +68,7 @@ class Model
                 return $this->set($method, $arguments[0]);
             }
         }
+
         // Symfony style getter setters with get/set prefix
         if (substr($method, 0, 3) == "get") {
             return $this->get(lcfirst(substr($method, 3)));
@@ -88,6 +84,8 @@ class Model
     // Get a field by name
     public function get($name)
     {
+        if ($name === 'id') $name = '_id';
+
         if ($this->schema()->field($name)) {
             $value = isset($this->data[$name]) ? $this->data[$name] : $this->schema()->defaultValue($name);
             return $this->schema()->filter('get', $name, $value);
@@ -103,6 +101,8 @@ class Model
     // Set a field by name
     public function set($name, $value)
     {
+        if ($name === 'id') $name = '_id';
+
         if ($this->schema()->field($name)) {
             $this->data[$name] = $this->schema()->filter('set', $name, $value);
             return $this;
