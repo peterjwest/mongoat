@@ -3,6 +3,7 @@
 namespace WhiteOctober\MongoatBundle\Tests;
 use WhiteOctober\MongoatBundle\Core\Mongoat;
 use WhiteOctober\MongoatBundle\Core\Schema;
+use WhiteOctober\MongoatBundle\Tests\Fixtures\User;
 
 use PHPUnit_Framework_TestCase;
 
@@ -15,20 +16,8 @@ class SchemaFieldTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->schema = new Schema($this->mongoat);
-        $this->schema->fields(array(
-            'name' => array('type' => 'string', 'default' => 'Your name'),
-            'anything' => array('type' => 'random'),
-            'count' => array('type' => 'integer', 'default' => 3),
-            'createdAt' => array('type' => 'date'),
-            'enabled' => array('type' => 'boolean', 'default' => true),
-            'value' => array('type' => 'float'),
-            'catId' => array('type' => 'id'),
-            'catNames' => array('type' => array('array', 'string'), 'default' => array('Fluffy')),
-            'prices' => array('type' => array('array', 'integer')),
-            'loginDates' => array('type' => array('array', 'date')),
-            'dogIds' => array('type' => array('array', 'id'))
-        ));
+        $this->model = new User($this->mongoat);
+        $this->schema = $this->model->schema();
     }
 
     public function testFieldsExist()
