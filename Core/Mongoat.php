@@ -39,9 +39,10 @@ class Mongoat
 	}
 
     // Gets the specified collection for the current connection
-    public function collection($document)
+    public function collection($class)
     {
-        return $this->connection()->collection($this->collectionName(get_class($document)));
+        if (is_object($class)) $class = get_class($class);
+        return $this->connection()->collection($this->collectionName($class));
     }
 
 	// Creates an instance of a model, passing it this Mongoat instance
@@ -120,6 +121,7 @@ class Mongoat
     // Getter for the Mongo collection name
     protected function collectionName($class)
     {
+        $class = $this->fullClass($class);
         if (!isset($class::$collectionNames[$class])) {
             $class::$collectionNames[$class] = $this->generateCollectionName($class);
         }

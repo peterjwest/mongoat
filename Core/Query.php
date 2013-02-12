@@ -204,7 +204,6 @@ class Query
 	// Gets the collection from the current Mongo database/connection
 	protected function collection()
 	{
-		$collectionName = $this->mongoat->collectionName($this->class);
-		return $this->mongoat->connection()->collection($collectionName);
+		return $this->mongoat->collection($this->class);
 	}
 }
