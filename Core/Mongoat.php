@@ -32,8 +32,13 @@ class Mongoat
 	// Getter / setter for the current connection
 	public function connection($name = null)
 	{
-		if (func_num_args() == 0) return $this->connections[$this->currentConnection];
-        if (!isset($this->connections[$name])) throw new \Exception('Connection "'.$name.'" not found.');
+		if (func_num_args() == 0) {
+            if (!isset($this->connections[$this->currentConnection])) {
+                throw new \Exception("No connections found in ".get_class($this));
+            }
+            return $this->connections[$this->currentConnection];
+        }
+        if (!isset($this->connections[$name])) throw new \Exception("Connection '$name' not found in ".get_class($this));
 
         $this->currentConnection = $name;
 	}
