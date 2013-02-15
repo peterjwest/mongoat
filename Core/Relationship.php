@@ -26,14 +26,21 @@ class Relationship
 
         // When this model has the foreign key
         if ($this->schema->foreignKey()) {
+
             $criteria = $this->model->get($this->schema->fieldName());
+
             // Wraps multiple foreign keys with $in operator
             if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
             $query->where('_id', $criteria);
         }
         // When the other model has the foreign key
         else {
-            $query->where($this->schema->fieldName(), $this->model);
+
+            $criteria = $this->model;
+
+            // Wraps multiple foreign keys with $in operator
+            if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
+            $query->where($this->schema->fieldName(), $criteria);
         }
 
         return $query;
@@ -171,12 +178,13 @@ class Relationship
             $query = $this->mongoat->update($this->schema->foreignClass());
 
             $criteria = $update['value'];
-            if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
+            //if ($this->schema->multiple())
+            $criteria = array('$in' => $criteria);
             $query->where('_id', $criteria);
 
             if ($this->schema->multiple()) {
                 if ($update['type'] == 'add') {
-                    $changes = array('$push' => array($this->schema->fieldName() => $this->model));
+                    $changes = array('$addToSet' => array($this->schema->fieldName() => $this->model));
                 }
                 if ($update['type'] == 'remove') {
                     $changes = array('$pull' => array($this->schema->fieldName() => $this->model));
@@ -187,7 +195,9 @@ class Relationship
                 $changes = array('$set' => array($this->schema->fieldName() => $value));
             }
 
-            $query->changes($changes)->all();
+            $query->changes($changes);
+
+            $query->all();
         }
 
         $this->updates = array();
