@@ -78,14 +78,14 @@ class Mongoat
         return $this->find($model)->type('delete');
     }
 
-    public function populate($documents, $relationship)
+    public function populate($documents, $name)
     {
         if (count($documents) == 0) return array();
         $document = $documents[0];
-        $options = $document->schema()->relationships[$relationship];
+        $relationship = $document->schema()->relationship($name);
 
         $ids = array_map(function($document) { return new \MongoId($document->ownerId()); }, $documents);
-        return $this->find($options['class'])->where('_id', array('$in' => $ids))->all();
+        return $this->find($relationship->foreignClass())->where('_id', array('$in' => $ids))->all();
     }
 
 	// Schedules one or more documents to be saved

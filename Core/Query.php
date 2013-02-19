@@ -9,7 +9,7 @@ class Query
 	protected $schema;
 	protected $criteria = array();
 	protected $changes = array();
-	protected $relations = array();
+	protected $populates = array();
 	protected $type = "find";
 	protected $limit = null;
 	protected $skip = null;
@@ -66,12 +66,27 @@ class Query
 			if ($this->skip !== null) $cursor->skip($this->skip);
 			else if ($this->page !== null) $cursor->limit($this->limit * ($this->page - 1));
 
-			// Instantiates and hydrates models
-			$models = array();
+			// Instantiates and hydrates documents
+			$documents = array();
 			foreach(iterator_to_array($cursor) as $item) {
-				$models[] = $this->mongoat->create($this->class)->hydrate($item)->unsaved(false);
+				$documents[] = $this->mongoat->create($this->class)->hydrate($item)->unsaved(false);
 			}
-			return $models;
+
+			// Run populates
+			foreach($this->populates as $name) {
+				$criteria = array();
+				foreach($documents as $document) {
+					$query = $document->relationship($name)->find();
+					$rawCriteria = $document->relationship($name)->criteria();
+					$criteria = $this->merge($criteria, $query->schema()->filterCriteria($rawCriteria));
+				}
+				$items = $this->hash($query->where($criteria)->all(), 'id');
+				foreach($documents as $document) {
+					$document->relationship($name)->populate($items);
+				}
+			}
+
+			return $documents;
 		}
 
 		if ($this->type == 'update') {
@@ -146,10 +161,9 @@ class Query
 	}
 
 	// Sets relationship subqueries to be run and inserted into the objects
-	public function populate($relations)
+	public function populate($populates)
 	{
-		// TODO - make this actually do something
-		$this->relations = array_merge($this->relations, is_array($relations) ? $relations : array($relations));
+		$this->populates = array_merge($this->populates, is_array($populates) ? $populates : array($populates));
 		return $this;
 	}
 
@@ -205,5 +219,44 @@ class Query
 	protected function collection()
 	{
 		return $this->mongoat->collection($this->class);
+	}
+
+	// Deeply merges two arrays
+	protected function merge($first, $second)
+	{
+		foreach($second as $key => $item) {
+			if (isset($first[$key]) && is_array($first[$key]) && is_array($item)) {
+				if ($this->numericArray($first[$key]) && $this->numericArray($item)) {
+					$first[$key] = array_merge($first[$key], $item);
+				}
+				else $first[$key] = $this->merge($first[$key], $item);
+			}
+			else $first[$key] = $item;
+		}
+		return $first;
+	}
+
+	// Determines if an array contains no further arrays
+    protected function valueArray($array)
+    {
+    	foreach($array as $key => $item) {
+    		if (is_array($item)) return false;
+    	}
+    	return true;
+    }
+
+    // Determines if an array is numerically indexed
+    protected function numericArray($array)
+    {
+		return count(array_filter(array_keys($array), 'is_int')) === count($array);
+	}
+
+	protected function hash($array, $key)
+	{
+		$hash = array();
+		foreach($array as $item) {
+			$hash[$item->$key()] = $item;
+		}
+		return $hash;
 	}
 }

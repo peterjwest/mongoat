@@ -9,7 +9,7 @@ class Relationship
     protected $model;
     protected $schema;
     protected $value;
-    protected $populations = array();
+    protected $instances = array();
     protected $updates = array();
 
     public function __construct($mongoat, $model, $schema)
@@ -19,31 +19,23 @@ class Relationship
         $this->schema = $schema;
     }
 
+    // Finds the criteria for a relationship query
+    public function criteria()
+    {
+        $field = $this->schema->foreignKey() ? '_id' : $this->schema->fieldName();
+        $criteria = $this->schema->foreignKey() ? $this->model->get($this->schema->fieldName()) : $this->model;
+
+        // Wraps multiple foreign keys with $in operator
+        if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
+
+        return array($field => $criteria);
+    }
+
     // Creates a query for a relationship
     public function find()
     {
         $query = $this->mongoat->find($this->schema->foreignClass());
-
-        // When this model has the foreign key
-        if ($this->schema->foreignKey()) {
-
-            $criteria = $this->model->get($this->schema->fieldName());
-
-            // Wraps multiple foreign keys with $in operator
-            if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
-            $query->where('_id', $criteria);
-        }
-        // When the other model has the foreign key
-        else {
-
-            $criteria = $this->model;
-
-            // Wraps multiple foreign keys with $in operator
-            if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
-            $query->where($this->schema->fieldName(), $criteria);
-        }
-
-        return $query;
+        return $query->where($this->criteria());
     }
 
     // Gets a relationship from the database or cache
@@ -55,8 +47,9 @@ class Relationship
             $query = $this->find();
             $this->value = $this->schema->multiple() ? $query->all() : $query->one();
 
-            // Substitutes existing related objects into the value cache
-            foreach ($this->populations as $existing) {
+            // Substitutes existing instances related objects into the value cache
+            // TODO: update values here?
+            foreach ($this->instances as $existing) {
                 if ($this->schema->multiple()) {
                     foreach ($this->value as $id => $document) {
                         if ($document->id() === $existing->id()) $this->value[$id] = $existing;
@@ -65,8 +58,7 @@ class Relationship
                 else if ($this->value->id() === $existing->id()) $this->value = $existing;
             }
 
-            // Resets populations
-            $this->populations = array();
+            $this->instances = array();
 
             // If there is an inverse relationship
             if ($this->schema->inverse()) {
@@ -74,7 +66,7 @@ class Relationship
                 // Tell related objects to populate themselves with this model
                 $documents = $this->schema->multiple() ? $this->value : array($this->value);
                 foreach ($documents as $document) {
-                    $document->relationship($this->schema->inverse())->populate($this->model);
+                    $document->relationship($this->schema->inverse())->useInstance($this->model);
                 }
             }
         }
@@ -154,11 +146,38 @@ class Relationship
         if ($this->schema->foreignKey()) $this->model->set($this->schema->fieldName(), $this->value);
     }
 
-    // Populates an existing object into a relationship, so related documents use the same instances
-    public function populate($value)
+    // Replaces a queried instance with an existing one, so related documents use the same instances
+    public function useInstance($value)
     {
-        if (!isset($this->value)) $this->populations[] = $value;
+        if (!isset($this->value)) $this->instances[] = $value;
         return $this;
+    }
+
+    // Inserts objects into the relationship
+    public function populate($objects)
+    {
+        $values = array();
+        if ($this->schema->foreignKey()) {
+            $ids = $this->model->get($this->schema->fieldName());
+            if (!is_array($ids)) $ids = array($ids);
+            foreach($ids as $id) {
+                if (isset($objects[$id])) $values[] = $objects[$id];
+            }
+        }
+        else {
+            foreach($objects as $object) {
+                $ids = $object->get($this->schema->fieldName());
+                if (!is_array($ids)) $ids = array($ids);
+                foreach($ids as $id) {
+                    if ($id == $this->model->id()) {
+                        $values[] = $object;
+                    }
+                }
+            }
+        }
+
+        if ($this->schema->multiple()) $this->value = $values;
+        else $this->value = isset($values[0]) ? $values[0] : null;
     }
 
     // Schedules an update to be performed on save of the model
