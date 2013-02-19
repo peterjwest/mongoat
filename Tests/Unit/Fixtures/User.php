@@ -1,6 +1,6 @@
 <?php
 
-namespace WhiteOctober\MongoatBundle\Tests\Fixtures;
+namespace WhiteOctober\MongoatBundle\Tests\Unit\Fixtures;
 use WhiteOctober\MongoatBundle\Core\Model;
 
 class User extends Model

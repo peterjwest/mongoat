@@ -1,6 +1,6 @@
 <?php
 
-namespace WhiteOctober\MongoatBundle\Tests\Mocks;
+namespace WhiteOctober\MongoatBundle\Tests\Unit\Mocks;
 
 class Connection
 {

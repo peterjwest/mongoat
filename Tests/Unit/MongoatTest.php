@@ -1,6 +1,6 @@
 <?php
 
-namespace WhiteOctober\MongoatBundle\Tests;
+namespace WhiteOctober\MongoatBundle\Tests\Unit;
 use WhiteOctober\MongoatBundle\Core\Mongoat;
 use WhiteOctober\MongoatBundle\Core\Schema;
 use WhiteOctober\MongoatBundle\Tests\Mocks\Connection;
