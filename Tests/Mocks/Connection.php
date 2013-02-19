@@ -6,6 +6,6 @@ class Connection
 {
     public function collection($name)
     {
-        return array('name' => $name);
+        return new Collection($name);
     }
 }
