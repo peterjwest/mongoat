@@ -69,12 +69,14 @@ Find that user again and delete them:
 
 ## TODO
 
+- Add default sort for queries and relationships
 - Build field update/insert generator
 - Complete population feature
 - Add support for symfony validation
 - Add logging
 - Add query analyser
 - Support additional operators: $slice, $regex, $where, $elemMatch, $bit, $mod
+- Add map method for queries
 - Tests:
 	- Schema
 		- Relationships
