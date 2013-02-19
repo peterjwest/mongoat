@@ -84,8 +84,26 @@ class Mongoat
         $document = $documents[0];
         $relationship = $document->schema()->relationship($name);
 
-        $ids = array_map(function($document) { return new \MongoId($document->ownerId()); }, $documents);
-        return $this->find($relationship->foreignClass())->where('_id', array('$in' => $ids))->all();
+        // If there are no documents, nothing happens
+        if (!count($documents)) return array();
+
+        // Creates a query to be built up
+        $query = $documents[0]->relationship($name)->find();
+
+        // Merges criteria in from each document
+        foreach($documents as $document) {
+            $query->where($document->relationship($name)->criteria());
+        }
+
+        // Gets all items from the database and forms these into a hash
+        $items = $this->hash($query->all(), 'id');
+
+        // Populates items into each document
+        foreach($documents as $document) {
+            $document->relationship($name)->populate($items);
+        }
+
+        return $items;
     }
 
 	// Schedules one or more documents to be saved
@@ -141,5 +159,15 @@ class Mongoat
             $class = str_replace($namespace.'\\', '', $class);
         }
         return str_replace('\\', '_', $class);
+    }
+
+    // Creates a hash from an array
+    protected function hash($array, $key)
+    {
+        $hash = array();
+        foreach($array as $item) {
+            $hash[$item->$key()] = $item;
+        }
+        return $hash;
     }
 }

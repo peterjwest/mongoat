@@ -203,6 +203,7 @@ class Schema
 
 	protected function fieldSubtype($field)
 	{
+		// TODO: make this more robust
 		$type = $this->fields[$field]['type'];
 		return is_array($type) && isset($type[1]) ? $type[1] : null;
 	}
@@ -254,6 +255,8 @@ class Schema
             	// Gets standard types for the field
             	$type = $this->fieldType($field);
 				$subtype = $this->fieldSubtype($field);
+
+				// TODO: Add errors here when fields are incompatible / non-existant
 
 				// Applies custom data types for specific parent operators
 				foreach($this->operators['parent'] as $group) {

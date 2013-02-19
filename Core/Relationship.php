@@ -7,7 +7,7 @@ class Relationship
 {
     protected $mongoat;
     protected $model;
-    protected $schema;
+    public $schema;
     protected $value;
     protected $instances = array();
     protected $updates = array();
@@ -26,7 +26,7 @@ class Relationship
         $criteria = $this->schema->foreignKey() ? $this->model->get($this->schema->fieldName()) : $this->model;
 
         // Wraps multiple foreign keys with $in operator
-        if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
+        if ($this->schema->multiple()) $criteria = array('$in' => array($criteria));
 
         return array($field => $criteria);
     }
@@ -192,16 +192,17 @@ class Relationship
     {
         foreach($this->updates as $update) {
 
-            // TODO use correct 'multiple' value here
-
             $query = $this->mongoat->update($this->schema->foreignClass());
 
+            // Sample model to find schema information
+            // TODO: more elegant solution here?
+            $relationshipSchema = $query->schema()->relationship($this->schema->inverse());
+
             $criteria = $update['value'];
-            //if ($this->schema->multiple())
-            $criteria = array('$in' => $criteria);
+            if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
             $query->where('_id', $criteria);
 
-            if ($this->schema->multiple()) {
+            if ($relationshipSchema->multiple()) {
                 if ($update['type'] == 'add') {
                     $changes = array('$addToSet' => array($this->schema->fieldName() => $this->model));
                 }
@@ -215,7 +216,6 @@ class Relationship
             }
 
             $query->changes($changes);
-
             $query->all();
         }
 

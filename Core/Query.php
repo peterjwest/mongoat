@@ -43,8 +43,8 @@ class Query
 		if (func_num_args() > 1) {
 			$criteria = array((string) $criteria => $criterion);
 		}
-		// Merge criteria intelligently (not like this)
-		$this->criteria = array_merge($this->criteria, $criteria);
+		// Merges criteria
+		$this->criteria = $this->merge($this->criteria, $criteria);
 
 		return $this;
 	}
@@ -74,23 +74,13 @@ class Query
 
 			// Run populates
 			foreach($this->populates as $name) {
-				$criteria = array();
-				foreach($documents as $document) {
-					$query = $document->relationship($name)->find();
-					$rawCriteria = $document->relationship($name)->criteria();
-					$criteria = $this->merge($criteria, $query->schema()->filterCriteria($rawCriteria));
-				}
-				$items = $this->hash($query->where($criteria)->all(), 'id');
-				foreach($documents as $document) {
-					$document->relationship($name)->populate($items);
-				}
+				$this->mongoat->populate($documents, $name);
 			}
 
 			return $documents;
 		}
 
 		if ($this->type == 'update') {
-
 			$this->options['multiple'] = true;
 			return $this->collection()->update(
 				$this->schema()->filterCriteria($this->criteria),
@@ -101,7 +91,6 @@ class Query
 		}
 
 		if ($this->type == 'delete') {
-
 			$this->options['justOne'] = false;
 			return $this->collection()->remove(
 				$this->schema()->filterCriteria($this->criteria),
@@ -221,42 +210,28 @@ class Query
 		return $this->mongoat->collection($this->class);
 	}
 
-	// Deeply merges two arrays
-	protected function merge($first, $second)
-	{
-		foreach($second as $key => $item) {
-			if (isset($first[$key]) && is_array($first[$key]) && is_array($item)) {
-				if ($this->numericArray($first[$key]) && $this->numericArray($item)) {
-					$first[$key] = array_merge($first[$key], $item);
-				}
-				else $first[$key] = $this->merge($first[$key], $item);
-			}
-			else $first[$key] = $item;
-		}
-		return $first;
-	}
-
-	// Determines if an array contains no further arrays
-    protected function valueArray($array)
+    // Deeply merges two arrays
+    protected function merge($first, $second)
     {
-    	foreach($array as $key => $item) {
-    		if (is_array($item)) return false;
-    	}
-    	return true;
+    	// Iterating all items in the second array
+        foreach($second as $key => $item) {
+        	// If both items are arrays
+            if (isset($first[$key]) && is_array($first[$key]) && is_array($item)) {
+            	// Numeric arrays will be concatenated and re-indexed
+                if ($this->numericArray($first[$key]) && $this->numericArray($item)) {
+                    $first[$key] = array_merge(array_values($first[$key]), array_values($item));
+                }
+                // Other arrays will be merged recursively
+                else $first[$key] = $this->merge($first[$key], $item);
+            }
+            else $first[$key] = $item;
+        }
+        return $first;
     }
 
-    // Determines if an array is numerically indexed
+    // Determines if an array is numerically indexed (but may be sparse)
     protected function numericArray($array)
     {
-		return count(array_filter(array_keys($array), 'is_int')) === count($array);
-	}
-
-	protected function hash($array, $key)
-	{
-		$hash = array();
-		foreach($array as $item) {
-			$hash[$item->$key()] = $item;
-		}
-		return $hash;
-	}
+        return count(array_filter(array_keys($array), 'is_int')) === count($array);
+    }
 }
