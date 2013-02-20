@@ -110,8 +110,8 @@ class SchemaFieldTest extends PHPUnit_Framework_TestCase
 
     public function testSetArrayFieldFilter()
     {
-        $this->assertSame(array('fluffy', 'tibbles'), $this->schema->filter('set', 'catNames', array('fluffy', 'tibbles')));
-        $this->assertSame(array('tibbles'), $this->schema->filter('set', 'catNames', 'tibbles'));
+        $this->assertSame(array('The Great Catsby', 'Cat-ur-bury Tails'), $this->schema->filter('set', 'catNames', array('The Great Catsby', 'Cat-ur-bury Tails')));
+        $this->assertSame(array('Mew'), $this->schema->filter('set', 'catNames', 'Mew'));
         $this->assertSame(array('1'), $this->schema->filter('set', 'catNames', 1));
 
         $this->assertSame(array(1, 2, 3), $this->schema->filter('set', 'prices', array(1, 2, '3')));
