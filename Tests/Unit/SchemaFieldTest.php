@@ -25,8 +25,14 @@ class SchemaFieldTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(count($this->schema->fields()), 12);
 
         $this->assertSame(array('type' => 'id'), $this->schema->field('_id'));
-        $this->assertSame(array('type' => 'string', 'default' => 'Your name'), $this->schema->field('name'));
-        $this->assertSame(array('type' => array('array', 'string'), 'default' => array('Fluffy')), $this->schema->field('catNames'));
+        $this->assertSame(
+            array('type' => 'string', 'default' => 'Your name'),
+            $this->schema->field('name')
+        );
+        $this->assertSame(
+            array('type' => array('array', 'string'), 'default' => array('Fluffy', 'Chairman Miaow')),
+            $this->schema->field('catNames')
+        );
 
         $this->assertNull($this->schema->field('apple'));
         $this->assertNull($this->schema->field('banana'));
@@ -145,7 +151,7 @@ class SchemaFieldTest extends PHPUnit_Framework_TestCase
         $this->assertSame(true, $this->schema->defaultValue('enabled'));
         $this->assertSame(null, $this->schema->defaultValue('createdAt'));
         $this->assertSame(array(), $this->schema->defaultValue('prices'));
-        $this->assertSame(array('Fluffy'), $this->schema->defaultValue('catNames'));
+        $this->assertSame(array('Fluffy', 'Chairman Miaow'), $this->schema->defaultValue('catNames'));
     }
 
     public function testClearSchema()

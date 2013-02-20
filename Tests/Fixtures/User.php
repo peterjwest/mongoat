@@ -1,6 +1,7 @@
 <?php
 
-namespace WhiteOctober\MongoatBundle\Tests\Unit\Fixtures;
+namespace WhiteOctober\MongoatBundle\Tests\Fixtures;
+
 use WhiteOctober\MongoatBundle\Core\Model;
 
 class User extends Model
@@ -15,7 +16,7 @@ class User extends Model
             'enabled' => array('type' => 'boolean', 'default' => true),
             'value' => array('type' => 'float'),
             'catId' => array('type' => 'id'),
-            'catNames' => array('type' => array('array', 'string'), 'default' => array('Fluffy')),
+            'catNames' => array('type' => array('array', 'string'), 'default' => array('Fluffy', 'Chairman Miaow')),
             'prices' => array('type' => array('array', 'integer')),
             'loginDates' => array('type' => array('array', 'date')),
             'dogIds' => array('type' => array('array', 'id')),

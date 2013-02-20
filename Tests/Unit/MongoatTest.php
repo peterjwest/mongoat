@@ -1,13 +1,12 @@
 <?php
 
 namespace WhiteOctober\MongoatBundle\Tests\Unit;
+
 use WhiteOctober\MongoatBundle\Core\Mongoat;
 use WhiteOctober\MongoatBundle\Core\Schema;
 use WhiteOctober\MongoatBundle\Tests\Mocks\Connection;
 
-use PHPUnit_Framework_TestCase;
-
-class MongoatTest extends PHPUnit_Framework_TestCase
+class MongoatTest extends \PHPUnit_Framework_TestCase
 {
     protected $class = 'WhiteOctober\MongoatBundle\Core\Mongoat';
 

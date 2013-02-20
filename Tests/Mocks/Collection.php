@@ -1,6 +1,6 @@
 <?php
 
-namespace WhiteOctober\MongoatBundle\Tests\Unit\Mocks;
+namespace WhiteOctober\MongoatBundle\Tests\Mocks;
 
 class Collection
 {

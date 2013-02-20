@@ -19,7 +19,7 @@ class Connection
         $this->databaseName = $databaseName;
     }
 
-    // Instanciates Mongo if it doesn't yet exist then returns it
+    // Instantiates Mongo if it doesn't yet exist then returns it
     public function mongo()
     {
         if (!$this->mongo) $this->mongo = new \Mongo($this->server, $this->options);

@@ -9,6 +9,7 @@ class Mongoat
 	protected $persisting = array();
     protected $removing = array();
     protected $modelNamespace = '';
+    protected $collectionNames = array();
 
     // Model namespace getter/setter
     public function modelNamespace($modelNamespace = null)
@@ -145,10 +146,10 @@ class Mongoat
     protected function collectionName($class)
     {
         $class = $this->fullClass($class);
-        if (!isset($class::$collectionNames[$class])) {
-            $class::$collectionNames[$class] = $this->generateCollectionName($class);
+        if (!isset($this->collectionNames[$class])) {
+            $this->collectionNames[$class] = $this->generateCollectionName($class);
         }
-        return $class::$collectionNames[$class];
+        return $this->collectionNames[$class];
     }
 
     // Generates a collection name based on the model class

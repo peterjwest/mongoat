@@ -30,7 +30,7 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
         $this->assertSame(true, $this->model->get('enabled'));
         $this->assertSame(null, $this->model->get('createdAt'));
         $this->assertSame(array(), $this->model->get('prices'));
-        $this->assertSame(array('Fluffy'), $this->model->get('catNames'));
+        $this->assertSame(array('Fluffy', 'Chairman Miaow'), $this->model->get('catNames'));
     }
 
     public function testSettingGettingIdFields()
@@ -63,13 +63,13 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
         $this->model->set('anything', 'foo bar');
         $this->model->set('count', 3);
         $this->model->set('createdAt', $date);
-        $this->model->set('catNames', array('Tibbles', 'Fluffy'));
+        $this->model->set('catNames', array('Mr. Whiskers'));
 
         $this->assertSame('John', $this->model->get('name'));
         $this->assertSame('foo bar', $this->model->get('anything'));
         $this->assertSame(3, $this->model->get('count'));
         $this->assertSame($date, $this->model->get('createdAt'));
-        $this->assertSame(array('Tibbles', 'Fluffy'), $this->model->get('catNames'));
+        $this->assertSame(array('Mr. Whiskers'), $this->model->get('catNames'));
     }
 
     public function testGetNonExistantField()
@@ -131,13 +131,13 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
         $this->model->setAnything('foo bar');
         $this->model->setCount(3);
         $this->model->setCreatedAt($date);
-        $this->model->setCatNames(array('Tibbles', 'Fluffy'));
+        $this->model->setCatNames(array('Rawr'));
 
         $this->assertSame('John', $this->model->getName());
         $this->assertSame('foo bar', $this->model->getAnything());
         $this->assertSame(3, $this->model->getCount());
         $this->assertSame($date, $this->model->getCreatedAt());
-        $this->assertSame(array('Tibbles', 'Fluffy'), $this->model->getCatNames());
+        $this->assertSame(array('Rawr'), $this->model->getCatNames());
     }
 
     public function testSettingGettingValuesRubyStyle()
