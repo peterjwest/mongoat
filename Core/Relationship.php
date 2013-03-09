@@ -7,14 +7,13 @@ class Relationship
 {
     protected $mongoat;
     protected $model;
-    public $schema;
+    protected $schema;
     protected $value;
     protected $instances = array();
     protected $updates = array();
 
-    public function __construct($mongoat, $model, $schema)
+    public function __construct($model, $schema)
     {
-        $this->mongoat = $mongoat;
         $this->model = $model;
         $this->schema = $schema;
     }
@@ -34,7 +33,7 @@ class Relationship
     // Creates a query for a relationship
     public function find()
     {
-        $query = $this->mongoat->find($this->schema->foreignClass());
+        $query = $this->model->mongoat()->find($this->schema->foreignClass());
         return $query->where($this->criteria());
     }
 
@@ -192,7 +191,7 @@ class Relationship
     {
         foreach($this->updates as $update) {
 
-            $query = $this->mongoat->update($this->schema->foreignClass());
+            $query = $this->model->mongoat()->update($this->schema->foreignClass());
 
             $relationshipSchema = $query->schema()->relationship($this->schema->inverse());
 

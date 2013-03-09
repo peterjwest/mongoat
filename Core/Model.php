@@ -117,7 +117,7 @@ class Model
             // Creates a relationship object if it doesn't exist
             if (!isset($this->relationships[$name])) {
                 $schema = $this->schema()->relationship($name);
-                $relationship = new static::$relationshipClass($this->mongoat, $this, $schema);
+                $relationship = new static::$relationshipClass($this, $schema);
                 $this->relationships[$name] = $relationship;
             }
             return $this->relationships[$name];
