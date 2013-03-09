@@ -8,8 +8,6 @@ class Model
     static $queryClass = "WhiteOctober\MongoatBundle\Core\Query";
     static $schemaClass = "WhiteOctober\MongoatBundle\Core\Schema\Schema";
     static $relationshipClass = "WhiteOctober\MongoatBundle\Core\Relationship";
-    static $collectionNames = array();
-    static $schemaCaches = array();
 
     protected $data = array();
 	protected $mongoat;
@@ -37,11 +35,8 @@ class Model
     {
         if (func_num_args() == 0) {
             if ($this->schema === null) {
-                $class = get_class($this);
-                if (!isset(static::$schemaCaches[$class])) {
-                    static::$schemaCaches[$class] = $this->definition(new static::$schemaClass($this->mongoat));
-                }
-                $this->schema = static::$schemaCaches[$class];
+                if (!$this->mongoat) throw new \Exception('nonono');
+                $this->schema = $this->definition(new static::$schemaClass($this->mongoat));
             }
             return $this->schema;
         }

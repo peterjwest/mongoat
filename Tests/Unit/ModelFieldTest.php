@@ -17,7 +17,8 @@ class ModelFieldTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->model = new User($this->mongoat);
+        $this->model = new User();
+        $this->model->mongoat($this->mongoat);
         $this->class = get_class($this->model);
         $this->schema = $this->model->schema();
     }
