@@ -4,10 +4,7 @@ namespace WhiteOctober\MongoatBundle\Core\Schema;
 
 class Schema
 {
-	static $relationshipSchemas = array(
-		'WhiteOctober\MongoatBundle\Core\Schema\Relationship\RelationshipSchema'
-	);
-
+	static $relationshipSchema = 'WhiteOctober\MongoatBundle\Core\Schema\Relationship\RelationshipSchema';
 	static $fieldSchemas = array(
 		'raw' => 'WhiteOctober\MongoatBundle\Core\Schema\Field\FieldSchema',
 		'id' => 'WhiteOctober\MongoatBundle\Core\Schema\Field\IdFieldSchema',
@@ -112,7 +109,7 @@ class Schema
 			return $this->relationships;
 		}
 		foreach ($relationships as $name => $options) {
-			$class = $this->mongoat->fullClass(static::$relationshipSchemas[0]);
+			$class = $this->mongoat->fullClass(static::$relationshipSchema);
 			$this->relationships[$name] = new $class($name, $options, $this);
 		}
 
