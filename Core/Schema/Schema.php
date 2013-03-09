@@ -143,13 +143,13 @@ class Schema
         	// Sets the scope to the earliest field found
             if (!$this->isOperator($current) && !$field) $field = $current;
 
-            // Recursively filters criteria if a field is not yet specified,
-            // or if the value array contains more operators
+            // Recursively filters criteria if we are not in the scope of a field,
+            // or if the array contains more operators
             if (is_array($value) && (!$field || !$this->valueArray($value))) {
             	$filtered[$current] = $this->filterCriteria($value, $field, $current);
             }
 
-            // Otherwise filters the field
+            // Otherwise filter the field
             else if ($this->field($field)) {
 
             	// Gets standard types for the field
@@ -172,7 +172,7 @@ class Schema
 					}
 				}
 
-				// Filter fields through appropriate schemas
+				// Filters fields through appropriate schemas
 				// TODO: make this more efficent
 				$options = array('type' => $type, 'subtype' => $subtype);
 				$field = $this->fieldSchema(null, $options);

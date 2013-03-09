@@ -69,6 +69,8 @@ Find that user again and delete them:
 
 ## TODO
 
+- Provide support for scoped class references (e.g. Mongoat:User)
+- Automatically scope symfony bundles (e.g AcmeEpicBundle:Cat)
 - Build better foreign key names for relationships, allow custom foreign key name
 - Look into mongo date timezones, normalise?
 - Add default sort for queries and relationships
