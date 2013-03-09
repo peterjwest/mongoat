@@ -194,8 +194,6 @@ class Relationship
 
             $query = $this->mongoat->update($this->schema->foreignClass());
 
-            // Sample model to find schema information
-            // TODO: more elegant solution here?
             $relationshipSchema = $query->schema()->relationship($this->schema->inverse());
 
             $criteria = $update['value'];

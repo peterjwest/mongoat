@@ -89,7 +89,7 @@ class Schema
 	public function fieldSchema($name, $options)
 	{
 		if (!isset($options['type']) || !isset(static::$fieldSchemas[$options['type']])) {
-			throw new \BadMethodCallException("Field options must include 'type' in ".get_class($this));
+			throw new \BadMethodCallException("Field options must include a valid type in ".get_class($this));
 		}
 
 		if (!$this->mongoat) throw new \Exception('hi');
@@ -113,7 +113,7 @@ class Schema
 		}
 		foreach ($relationships as $name => $options) {
 			$class = $this->mongoat->fullClass(static::$relationshipSchemas[0]);
-			$this->relationships[$name] = new $class($this->mongoat, $name, $options, $this);
+			$this->relationships[$name] = new $class($name, $options, $this);
 		}
 	}
 

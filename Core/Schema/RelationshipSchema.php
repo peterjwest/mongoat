@@ -14,14 +14,12 @@ class RelationshipSchema
     protected $foreignClass;
     protected $foreignKey = false;
     protected $multiple = false;
-    protected $mongoat;
     protected $name;
     protected $inverse;
     protected $fieldName;
 
-    function __construct($mongoat, $name, $options, $schema)
+    function __construct($name, $options, $schema)
     {
-        $this->mongoat = $mongoat;
 
         if (!isset(static::$relationshipTypes[$options['type']])) {
             throw new \Exception("$name relationship type does not exist in ".get_class($this));
@@ -40,8 +38,8 @@ class RelationshipSchema
 
         // Creates a field for the foreign key, if one exists
         if ($this->foreignKey) {
-            $type = $this->multiple ? array('array', 'id') : 'id';
-            $schema->fields(array($this->fieldName => array('type' => $type)));
+            $options = $this->multiple ? array('type' => 'array', 'subtype' => 'id') : array('type' => 'id');
+            $schema->fields(array($this->fieldName => $options));
         }
     }
 
