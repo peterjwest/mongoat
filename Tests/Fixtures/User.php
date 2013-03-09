@@ -19,7 +19,7 @@ class User extends Model
             'catNames' => array('type' => array('array', 'string'), 'default' => array('Fluffy', 'Chairman Miaow')),
             'prices' => array('type' => array('array', 'integer')),
             'loginDates' => array('type' => array('array', 'date')),
-            'dogIds' => array('type' => array('array', 'id')),
+            'dogIds' => array('type' => array('array', 'id'))
         ));
     }
 }

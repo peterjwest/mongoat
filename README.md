@@ -82,7 +82,6 @@ Find that user again and delete them:
 		- Relationships
 	- Model
 		- Relationships
-		- Creating/saving, unsaved() method
 		- Deleting
 		- Hydrate/dehydrate
 	- Mongoat

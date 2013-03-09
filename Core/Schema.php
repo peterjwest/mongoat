@@ -250,7 +250,7 @@ class Schema
             }
 
             // Otherwise filters the field
-            else if ($field) {
+            else if ($this->fieldType($field)) {
 
             	// Gets standard types for the field
             	$type = $this->fieldType($field);

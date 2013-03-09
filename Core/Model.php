@@ -145,7 +145,7 @@ class Model
         if ($this->unsaved() && !isset($this->data['_id']))  $this->data['_id'] = new \MongoId();
 
         $collection = $this->mongoat()->collection($this);
-        $data = $this->schema()->filterCriteria($this->dehydrate());
+        $data = $this->schema()->filterCriteria($this->data);
 
         // Updates or inserts the model, depending on whether it is unsaved
         if ($this->unsaved()) {

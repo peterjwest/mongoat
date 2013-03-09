@@ -20,10 +20,13 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testSimpleFields()
     {
-        $this->schema->fields(array('name' => array('type' => 'string')));
-        $this->schema->fields(array('stock' => array('type' => 'integer')));
-        $this->schema->fields(array('price' => array('type' => 'float')));
-        $this->schema->fields(array('productId' => array('type' => 'id')));
+        $this->schema->fields(array(
+            'name' => array('type' => 'string'),
+            'stock' => array('type' => 'integer'),
+            'price' => array('type' => 'float'),
+            'productId' => array('type' => 'id'),
+            'createdAt' => array('type' => 'date')
+        ));
 
         $this->assertEquals(
             array('name' => '3'),
@@ -41,14 +44,22 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
             array('productId' => new \MongoId('51143ceb46bd74f3ed000001')),
             $this->schema->filterCriteria(array('productId' => '51143ceb46bd74f3ed000001'))
         );
+        $date = new \DateTime();
+        $this->assertEquals(
+            array('createdAt' => new \MongoDate($date->getTimestamp())),
+            $this->schema->filterCriteria(array('createdAt' => $date))
+        );
     }
 
     public function testSimpleFieldsCombined()
     {
-        $this->schema->fields(array('name' => array('type' => 'string')));
-        $this->schema->fields(array('stock' => array('type' => 'integer')));
-        $this->schema->fields(array('price' => array('type' => 'float')));
-        $this->schema->fields(array('productId' => array('type' => 'id')));
+        $this->schema->fields(array(
+            'name' => array('type' => 'string'),
+            'stock' => array('type' => 'integer'),
+            'price' => array('type' => 'float'),
+            'productId' => array('type' => 'id'),
+            'createdAt' => array('type' => 'date')
+        ));
 
         $this->assertEquals(
             array(
