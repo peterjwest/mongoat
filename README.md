@@ -69,6 +69,7 @@ Find that user again and delete them:
 
 ## TODO
 
+- Look into mongo date timezones, normalise?
 - Add default sort for queries and relationships
 - Build field update/insert generator
 - Complete population feature

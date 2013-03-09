@@ -2,7 +2,7 @@
 
 namespace WhiteOctober\MongoatBundle\Tests\Unit;
 use WhiteOctober\MongoatBundle\Core\Mongoat;
-use WhiteOctober\MongoatBundle\Core\Schema;
+use WhiteOctober\MongoatBundle\Core\Schema\Schema;
 
 use PHPUnit_Framework_TestCase;
 
@@ -79,7 +79,7 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testGreaterThanField()
     {
-        $this->schema->fields(array('count' => array('type' => 'number')));
+        $this->schema->fields(array('count' => array('type' => 'integer')));
 
         $this->assertEquals(
             array('count' => array('$gt' => 3)),
@@ -89,7 +89,7 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testNotGreaterThanField()
     {
-        $this->schema->fields(array('count' => array('type' => 'number')));
+        $this->schema->fields(array('count' => array('type' => 'integer')));
 
         $this->assertEquals(
             array('$not' => array('count' => array('$gt' => 3))),
@@ -99,7 +99,7 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testArrayField()
     {
-        $this->schema->fields(array('catId' => array('type' => array('array', 'id'))));
+        $this->schema->fields(array('catId' => array('type' => 'array', 'subtype' => 'id')));
 
         $id = new \MongoId();
 
@@ -116,8 +116,8 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testInArrayField()
     {
-        $this->schema->fields(array('someId' => array('type' => array('id'))));
-        $this->schema->fields(array('count' => array('type' => array('array', 'integer'))));
+        $this->schema->fields(array('someId' => array('type' => 'id')));
+        $this->schema->fields(array('count' => array('type' => 'array', 'subtype' => 'integer')));
 
         $id = new \MongoId();
 
@@ -144,7 +144,7 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testPushPullField()
     {
-        $this->schema->fields(array('count' => array('type' => array('array', 'integer'))));
+        $this->schema->fields(array('count' => array('type' => 'array', 'subtype' => 'integer')));
 
         $this->assertEquals(
             array(
@@ -160,7 +160,7 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testPushallPullallField()
     {
-        $this->schema->fields(array('count' => array('type' => array('array', 'integer'))));
+        $this->schema->fields(array('count' => array('type' => 'array', 'subtype' => 'integer')));
 
         $this->assertEquals(
             array(
@@ -177,7 +177,7 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
     public function testRenameField()
     {
         $this->schema->fields(array('count' => array('type' => 'integer')));
-        $this->schema->fields(array('rates' => array('type' => array('array', 'integer'))));
+        $this->schema->fields(array('rates' => array('type' => 'array', 'subtype' => 'integer')));
 
         $this->assertEquals(
             array('$rename' => array('count' => 'number')),
@@ -192,7 +192,7 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testFieldSize()
     {
-        $this->schema->fields(array('count' => array('type' => array('array', 'integer'))));
+        $this->schema->fields(array('count' => array('type' => 'array', 'subtype' => 'integer')));
 
         $this->assertEquals(
             array('count' => array('$size' => 3)),
@@ -213,7 +213,7 @@ class SchemaCriteriaTest extends PHPUnit_Framework_TestCase
 
     public function testPopField()
     {
-        $this->schema->fields(array('names' => array('type' => array('array', 'string'))));
+        $this->schema->fields(array('names' => array('type' => 'array', 'subtype' => 'string')));
 
         $this->assertEquals(
             array('$pop' => array('names' => 3)),

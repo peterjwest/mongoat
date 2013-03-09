@@ -2,7 +2,7 @@
 
 namespace WhiteOctober\MongoatBundle\Tests\Unit;
 use WhiteOctober\MongoatBundle\Core\Mongoat;
-use WhiteOctober\MongoatBundle\Core\Schema;
+use WhiteOctober\MongoatBundle\Core\Schema\Schema;
 use WhiteOctober\MongoatBundle\Core\Model;
 use WhiteOctober\MongoatBundle\Tests\Fixtures\User;
 

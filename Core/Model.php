@@ -1,12 +1,12 @@
 <?php
 
 namespace WhiteOctober\MongoatBundle\Core;
-use WhiteOctober\MongoatBundle\Core\Schema;
+use WhiteOctober\MongoatBundle\Core\Schema\Schema;
 
 class Model
 {
     static $queryClass = "WhiteOctober\MongoatBundle\Core\Query";
-    static $schemaClass = "WhiteOctober\MongoatBundle\Core\Schema";
+    static $schemaClass = "WhiteOctober\MongoatBundle\Core\Schema\Schema";
     static $relationshipClass = "WhiteOctober\MongoatBundle\Core\Relationship";
     static $collectionNames = array();
     static $schemaCaches = array();
@@ -87,8 +87,8 @@ class Model
         if ($name === 'id') $name = '_id';
 
         if ($this->schema()->field($name)) {
-            $value = isset($this->data[$name]) ? $this->data[$name] : $this->schema()->defaultValue($name);
-            return $this->schema()->filter('get', $name, $value);
+            $value = isset($this->data[$name]) ? $this->data[$name] : $this->schema()->field($name)->defaultValue();
+            return $this->schema()->field($name)->get($value);
         }
 
         if ($this->schema()->relationship($name)) {
@@ -104,7 +104,7 @@ class Model
         if ($name === 'id') $name = '_id';
 
         if ($this->schema()->field($name)) {
-            $this->data[$name] = $this->schema()->filter('set', $name, $value);
+            $this->data[$name] = $this->schema()->field($name)->set($value);
             return $this;
         }
 
@@ -145,7 +145,7 @@ class Model
         if ($this->unsaved() && !isset($this->data['_id']))  $this->data['_id'] = new \MongoId();
 
         $collection = $this->mongoat()->collection($this);
-        $data = $this->schema()->filterCriteria($this->data);
+        $data = $this->dehydrate();
 
         // Updates or inserts the model, depending on whether it is unsaved
         if ($this->unsaved()) {
@@ -176,8 +176,8 @@ class Model
     {
         $data = array();
         foreach($this->schema()->fields() as $name => $options) {
-            $value = isset($this->data[$name]) ? $this->data[$name] : $this->schema()->defaultValue($name);
-            $data[$name] = $this->schema()->filter('dehydrate', $name, $value);
+            $value = isset($this->data[$name]) ? $this->data[$name] : $this->schema()->field($name)->defaultValue();
+            $data[$name] = $this->schema()->field($name)->dehydrate($value);
         }
         return $data;
     }
@@ -186,8 +186,8 @@ class Model
     public function hydrate($data = null)
     {
         foreach($this->schema()->fields() as $name => $options) {
-            $value = isset($data[$name]) ? $data[$name] : $this->schema()->defaultValue($name);
-            $this->data[$name] = $this->schema()->filter('hydrate', $name, $value);
+            $value = isset($data[$name]) ? $data[$name] : $this->schema()->field($name)->defaultValue();
+            $this->data[$name] = $this->schema()->field($name)->hydrate($value);
         }
         return $this;
     }

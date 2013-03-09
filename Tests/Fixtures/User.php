@@ -10,16 +10,19 @@ class User extends Model
     {
         return $schema->fields(array(
             'name' => array('type' => 'string', 'default' => 'Your name'),
-            'anything' => array('type' => 'random'),
+            'anything' => array('type' => 'raw'),
             'count' => array('type' => 'integer', 'default' => 3),
             'createdAt' => array('type' => 'date'),
+            'loginDates' => array('type' => 'array', 'subtype' => 'date'),
             'enabled' => array('type' => 'boolean', 'default' => true),
             'value' => array('type' => 'float'),
             'catId' => array('type' => 'id'),
-            'catNames' => array('type' => array('array', 'string'), 'default' => array('Fluffy', 'Chairman Miaow')),
-            'prices' => array('type' => array('array', 'integer')),
-            'loginDates' => array('type' => array('array', 'date')),
-            'dogIds' => array('type' => array('array', 'id'))
+            'prices' => array('type' => 'array', 'subtype' => 'integer'),
+            'dogIds' => array('type' => 'array', 'subtype' => 'id'),
+            'catNames' => array(
+                'type' => 'array', 'subtype' => 'string',
+                'default' => array('Fluffy', 'Chairman Miaow')
+            )
         ));
     }
 }

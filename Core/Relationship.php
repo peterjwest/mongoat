@@ -1,7 +1,7 @@
 <?php
 
 namespace WhiteOctober\MongoatBundle\Core;
-use WhiteOctober\MongoatBundle\Core\Schema;
+use WhiteOctober\MongoatBundle\Core\Schema\Schema;
 
 class Relationship
 {
