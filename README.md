@@ -69,6 +69,7 @@ Find that user again and delete them:
 
 ## TODO
 
+- Build better foreign key names for relationships, allow custom foreign key name
 - Look into mongo date timezones, normalise?
 - Add default sort for queries and relationships
 - Build field update/insert generator
@@ -78,6 +79,7 @@ Find that user again and delete them:
 - Add query analyser
 - Support additional operators: $slice, $regex, $where, $elemMatch, $bit, $mod
 - Add map method for queries
+- Check reserved field names
 - Tests:
 	- Schema
 		- Relationships

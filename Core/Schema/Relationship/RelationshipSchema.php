@@ -1,6 +1,6 @@
 <?php
 
-namespace WhiteOctober\MongoatBundle\Core\Schema;
+namespace WhiteOctober\MongoatBundle\Core\Schema\Relationship;
 
 class RelationshipSchema
 {
@@ -11,10 +11,10 @@ class RelationshipSchema
         'belongsToMany' => array('foreignKey' => true, 'multiple' => true)
     );
 
+    protected $name;
     protected $foreignClass;
     protected $foreignKey = false;
     protected $multiple = false;
-    protected $name;
     protected $inverse;
     protected $fieldName;
 

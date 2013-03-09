@@ -5,7 +5,7 @@ namespace WhiteOctober\MongoatBundle\Core\Schema;
 class Schema
 {
 	static $relationshipSchemas = array(
-		'WhiteOctober\MongoatBundle\Core\Schema\RelationshipSchema'
+		'WhiteOctober\MongoatBundle\Core\Schema\Relationship\RelationshipSchema'
 	);
 
 	static $fieldSchemas = array(
@@ -115,6 +115,8 @@ class Schema
 			$class = $this->mongoat->fullClass(static::$relationshipSchemas[0]);
 			$this->relationships[$name] = new $class($name, $options, $this);
 		}
+
+        return $this;
 	}
 
 	// Gets a relationship by name
