@@ -86,10 +86,8 @@ class Schema
 	public function fieldSchema($name, $options)
 	{
 		if (!isset($options['type']) || !isset(static::$fieldSchemas[$options['type']])) {
-			throw new \BadMethodCallException("Field options must include a valid type in ".get_class($this));
+			throw new \Exception("Field options must include a valid type in ".get_class($this));
 		}
-
-		if (!$this->mongoat) throw new \Exception('hi');
 
 		$class = $this->mongoat->fullClass(static::$fieldSchemas[$options['type']]);
 

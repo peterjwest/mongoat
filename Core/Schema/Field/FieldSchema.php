@@ -13,7 +13,7 @@ class FieldSchema
     {
         foreach($this->requiredOptions as $option) {
             if (!isset($options[$option]) || !$options[$option]) {
-                throw new BadMethodCallException(
+                throw new \Exception(
                     "Field options must include '$option' in ".get_class($this)
                 );
             }

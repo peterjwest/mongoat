@@ -12,7 +12,8 @@ class Cat extends Model
             'owner' => array('type' => 'belongsTo', 'class' => 'Human', 'inverse' => 'cat'),
             'tail' => array('type' => 'hasOne', 'class' => 'Tail', 'inverse' => 'cat'),
             'collars' => array('type' => 'hasMany', 'class' => 'Collar', 'inverse' => 'cat'),
-            'households' => array('type' => 'belongsToMany', 'class' => 'Household', 'inverse' => 'cats')
+            'households' => array('type' => 'belongsToMany', 'class' => 'Household', 'inverse' => 'cat'),
+            'streets' => array('type' => 'belongsToMany', 'class' => 'Street', 'inverse' => 'cats')
         ));
     }
 }

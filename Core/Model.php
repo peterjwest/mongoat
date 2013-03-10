@@ -16,6 +16,12 @@ class Model
     protected $options = array('safe' => true);
     protected $relationships = array();
 
+    public function __construct()
+    {
+        // Add an id to this model on creation
+        $this->data['_id'] = new \MongoId();
+    }
+
     // Schema definition, override to specify schema for a model
     public function definition($schema)
     {
@@ -136,9 +142,6 @@ class Model
     // Saves a document
     public function save()
     {
-        // Adds a MongoId to new models
-        if ($this->unsaved() && !isset($this->data['_id']))  $this->data['_id'] = new \MongoId();
-
         $collection = $this->mongoat()->collection($this);
         $data = $this->dehydrate();
 
@@ -163,7 +166,7 @@ class Model
     public function delete()
     {
         $collection = $this->mongoat()->collection($this);
-        return $collection->remove(array('_id' => $this->mongoId()), $data, $this->options);
+        return $collection->remove(array('_id' => $this->mongoId()), $this->options);
     }
 
     // Dehydrates data to be inserted into the database

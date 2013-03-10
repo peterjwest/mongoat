@@ -20,12 +20,22 @@ class RelationshipSchema
 
     function __construct($name, $options, $schema)
     {
-
-        if (!isset(static::$relationshipTypes[$options['type']])) {
-            throw new \Exception("$name relationship type does not exist in ".get_class($this));
+        if (!isset($options['type'])) {
+            throw new \Exception("Relationship options must include 'type' in ".get_class($this));
         }
 
-        $type = static::$relationshipTypes[$options['type']];
+        $typeName = $options['type'];
+
+        if (!isset(static::$relationshipTypes[$typeName])) {
+            throw new \Exception("$type relationship type does not exist in ".get_class($this));
+        }
+
+        $type = static::$relationshipTypes[$typeName];
+
+        if (!$type['foreignKey'] && !isset($options['inverse'])) {
+            throw new \Exception("$type relationship options must include 'inverse' in ".get_class($this));
+        }
+
         $this->foreignKey = $type['foreignKey'];
         $this->multiple = $type['multiple'];
 

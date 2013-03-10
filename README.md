@@ -69,6 +69,7 @@ Find that user again and delete them:
 
 ## TODO
 
+- Store changes separately to field data
 - Provide support for scoped class references (e.g. Mongoat:User)
 - Automatically scope symfony bundles (e.g AcmeEpicBundle:Cat)
 - Build better foreign key names for relationships, allow custom foreign key name
@@ -83,12 +84,8 @@ Find that user again and delete them:
 - Add map method for queries
 - Check reserved field names
 - Tests:
-	- Schema
-		- Relationships
 	- Model
-		- Relationships
-		- Deleting
-		- Hydrate/dehydrate
+		- Advanced relationship caching
 	- Mongoat
 		- Test connections
 		- Making find query

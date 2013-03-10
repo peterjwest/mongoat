@@ -25,7 +25,7 @@ class Relationship
         $criteria = $this->schema->foreignKey() ? $this->model->get($this->schema->fieldName()) : $this->model;
 
         // Wraps multiple foreign keys with $in operator
-        if ($this->schema->multiple()) $criteria = array('$in' => array($criteria));
+        if ($this->schema->multiple()) $criteria = array('$in' => $criteria);
 
         return array($field => $criteria);
     }
@@ -38,7 +38,6 @@ class Relationship
     }
 
     // Gets a relationship from the database or cache
-    // The forceReload flag forces a database request
     public function get()
     {
         if (!isset($this->value)) {
@@ -47,7 +46,7 @@ class Relationship
             $this->value = $this->schema->multiple() ? $query->all() : $query->one();
 
             // Substitutes existing instances related objects into the value cache
-            // TODO: update values here?
+            // TODO: update data here?
             foreach ($this->instances as $existing) {
                 if ($this->schema->multiple()) {
                     foreach ($this->value as $id => $document) {
@@ -63,9 +62,13 @@ class Relationship
             if ($this->schema->inverse()) {
 
                 // Tell related objects to populate themselves with this model
-                $documents = $this->schema->multiple() ? $this->value : array($this->value);
-                foreach ($documents as $document) {
-                    $document->relationship($this->schema->inverse())->useInstance($this->model);
+                if ($this->schema->multiple()) {
+                    foreach ($this->value as $document) {
+                        $document->relationship($this->schema->inverse())->useInstance($this->model);
+                    }
+                }
+                else if ($this->value) {
+                    $this->value->relationship($this->schema->inverse())->useInstance($this->model);
                 }
             }
         }
@@ -78,7 +81,7 @@ class Relationship
         // Clear any updates pending
         $this->updates = array();
 
-        // Removes this object from previously related objects, if they have been loaded
+        // Removes this object from previously related objects, if they exist
         if ($this->schema->inverse() && isset($this->value)) {
             $documents = $this->schema->multiple() ? $this->value : array($this->value);
             foreach ($documents as $document) {
@@ -93,7 +96,8 @@ class Relationship
             else $this->update('remove', $this->value);
         }
 
-        $this->value = $value;
+        $this->value = $this->schema->multiple() && !is_array($value) ? array($value) : $value;
+
         if ($this->schema->foreignKey()) $this->model->set($this->schema->fieldName(), $this->value);
 
         // Adds this object to newly related objects
@@ -194,6 +198,11 @@ class Relationship
             $query = $this->model->mongoat()->update($this->schema->foreignClass());
 
             $relationshipSchema = $query->schema()->relationship($this->schema->inverse());
+
+            if (!$relationshipSchema) {
+                $inverse = $this->schema->inverse();
+                throw new \Exception("Inverse relationship '$inverse' not found in ".get_class($this));
+            }
 
             $criteria = $update['value'];
             if ($this->schema->multiple()) $criteria = array('$in' => $criteria);

@@ -6,7 +6,7 @@ use WhiteOctober\MongoatBundle\Core\Mongoat;
 use WhiteOctober\MongoatBundle\Core\Connection;
 use WhiteOctober\MongoatBundle\Tests\Fixtures\User;
 
-class SaveLoadTest extends \PHPUnit_Framework_TestCase
+class ModelTest extends \PHPUnit_Framework_TestCase
 {
     public function setUp()
     {
@@ -21,7 +21,7 @@ class SaveLoadTest extends \PHPUnit_Framework_TestCase
         $this->mongoat->delete('User')->all();
     }
 
-    public function testEmptyTable()
+    public function testEmptyCollection()
     {
         $this->model->save();
         $this->mongoat->delete('User')->all();
@@ -30,7 +30,7 @@ class SaveLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array(), $users);
     }
 
-    public function testSaveDefaultModel()
+    public function testSaveAndLoadDefaultsModel()
     {
         $this->model->save();
         $model = $this->mongoat->find('User')->one();
@@ -50,7 +50,7 @@ class SaveLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array(), $model->dogIds());
     }
 
-    public function testSaveFieldsModel()
+    public function testSaveAndLoadModel()
     {
         $date = new \DateTime;
 
@@ -77,6 +77,16 @@ class SaveLoadTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array(), $model->prices());
         $this->assertEquals(array(), $model->loginDates());
         $this->assertEquals(array(), $model->dogIds());
+    }
+
+    public function testDeleteModel()
+    {
+        $this->model->save();
+        $this->model->delete();
+
+        $model = $this->mongoat->find('User')->one();
+
+        $this->assertEquals(null, $model);
     }
 
     public function testModelUnsavedMethod()

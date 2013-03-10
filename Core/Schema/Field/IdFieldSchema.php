@@ -11,6 +11,7 @@ class IdFieldSchema extends FieldSchema
     {
         if ($id instanceof \MongoId) return $id;
         if ($id instanceof Model) return $id->mongoId();
+        if ($id === true) return new \MongoId();
         if ($id === null) return null;
         return new \MongoId($id);
     }
